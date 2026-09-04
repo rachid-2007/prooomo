@@ -1,0 +1,339 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: 240 6% 6%;
+  --foreground: 0 0% 95%;
+  --card: 240 6% 9%;
+  --card-foreground: 0 0% 95%;
+  --popover: 240 6% 9%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 5% 14%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 240 5% 14%;
+  --muted-foreground: 240 5% 55%;
+  --accent: 240 5% 14%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5% 16%;
+  --input: 240 5% 16%;
+  --ring: 240 5% 55%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-cairo), var(--font-outfit), system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.01em;
+}
+
+p, span, td, th, li, label, div, button, a, h1, h2, h3, h4, h5, h6 {
+  font-weight: inherit;
+}
+
+.font-mono {
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+}
+
+button {
+  font-weight: 700;
+}
+
+table td, table th {
+  font-weight: 600;
+}
+
+h1, h2, h3 {
+  font-weight: 800 !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.no-transition {
+  transition: none !important;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-slide-down { animation: slideDown 0.2s ease-out; }
+.animate-slide-up { animation: slideUp 0.2s ease-out; }
+.animate-fade-in { animation: fadeIn 0.2s ease-out; }
+.animate-scale-in { animation: scaleIn 0.2s ease-out; }
+
+.focus-ring:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+[dir="rtl"] {
+  text-align: right;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dark .glass {
+  background: hsl(240 6% 6% / 0.8);
+}
+
+.hover-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.dark .hover-card:hover {
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes progressCircle {
+  from { stroke-dashoffset: 283; }
+}
+
+.progress-circle-animate {
+  animation: progressCircle 1s ease-out forwards;
+}
+
+.table-row-hover:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+/* Status badge colors - Light */
+.status-new { background: #dbeafe; color: #1d4ed8; }
+.status-confirmed { background: #dcfce7; color: #16a34a; }
+.status-shipped { background: #e0e7ff; color: #4f46e5; }
+.status-delivered { background: #d1fae5; color: #059669; }
+.status-returned { background: #ffe4e6; color: #e11d48; }
+
+/* Status badge colors - Dark (muted, cohesive palette) */
+.dark .status-new { background: hsl(217 50% 15%); color: hsl(213 90% 70%); }
+.dark .status-confirmed { background: hsl(152 50% 12%); color: hsl(142 70% 65%); }
+.dark .status-shipped { background: hsl(235 40% 14%); color: hsl(225 80% 70%); }
+.dark .status-delivered { background: hsl(160 45% 11%); color: hsl(155 65% 60%); }
+.dark .status-returned { background: hsl(350 45% 13%); color: hsl(350 80% 70%); }
+
+/* Status icon CSS custom properties for SVG theming */
+:root {
+  --si-sky-50: #E0F2FE; --si-sky-100: #BAE6FD; --si-sky-500: #0EA5E9;
+  --si-emerald-50: #D1FAE5; --si-emerald-100: #A7F3D0; --si-emerald-500: #10B981; --si-emerald-600: #059669;
+  --si-orange-50: #FFF7ED; --si-orange-100: #FED7AA; --si-orange-500: #F97316; --si-orange-600: #EA580C;
+  --si-rose-50: #FFF1F2; --si-rose-100: #FECDD3; --si-rose-400: #FB7185; --si-rose-500: #F43F5E; --si-rose-600: #E11D48;
+  --si-violet-50: #F5F3FF; --si-violet-100: #DDD6FE; --si-violet-300: #C4B5FD; --si-violet-500: #8B5CF6; --si-violet-600: #7C3AED;
+  --si-amber-50: #FFFBEB; --si-amber-100: #FDE68A; --si-amber-500: #F59E0B; --si-amber-600: #D97706; --si-amber-700: #B45309;
+  --si-yellow-50: #FEF9C3; --si-yellow-100: #FDE68A; --si-yellow-500: #EAB308; --si-yellow-600: #CA8A04;
+  --si-red-50: #FEE2E2; --si-red-100: #FECACA; --si-red-400: #F87171; --si-red-500: #EF4444; --si-red-600: #DC2626; --si-red-300: #FCA5A5;
+  --si-green-50: #D1FAE5; --si-green-100: #A7F3D0; --si-green-500: #10B981; --si-green-600: #059669;
+  --si-blue-50: #DBEAFE; --si-blue-100: #BFDBFE; --si-blue-500: #3B82F6; --si-blue-600: #2563EB;
+}
+.dark {
+  --si-sky-50: #0c4a6e33; --si-sky-100: #0284c733; --si-sky-500: #38bdf8;
+  --si-emerald-50: #065f4633; --si-emerald-100: #05966933; --si-emerald-500: #34d399; --si-emerald-600: #10b981;
+  --si-orange-50: #9a341233; --si-orange-100: #ea580c33; --si-orange-500: #fb923c; --si-orange-600: #f97316;
+  --si-rose-50: #9f123933; --si-rose-100: #e11d4833; --si-rose-400: #fb7185; --si-rose-500: #f43f5e; --si-rose-600: #e11d48;
+  --si-violet-50: #5b21b633; --si-violet-100: #7c3aed33; --si-violet-300: #c4b5fd; --si-violet-500: #a78bfa; --si-violet-600: #8b5cf6;
+  --si-amber-50: #92400e33; --si-amber-100: #d9770633; --si-amber-500: #fbbf24; --si-amber-600: #f59e0b; --si-amber-700: #d97706;
+  --si-yellow-50: #854d0e33; --si-yellow-100: #ca8a0433; --si-yellow-500: #facc15; --si-yellow-600: #eab308;
+  --si-red-50: #991b1b33; --si-red-100: #dc262633; --si-red-400: #f87171; --si-red-500: #ef4444; --si-red-600: #dc2626; --si-red-300: #fca5a5;
+  --si-green-50: #065f4633; --si-green-100: #05966933; --si-green-500: #34d399; --si-green-600: #10b981;
+  --si-blue-50: #1e3a5f33; --si-blue-100: #2563eb33; --si-blue-500: #60a5fa; --si-blue-600: #3b82f6;
+}
+
+/* Dashboard stat card colors - coordinated palette for dark mode */
+.dark .stat-blue { --stat-color: hsl(213 80% 70%); --stat-bg: hsl(217 50% 18%); --stat-border: hsl(217 50% 25%); }
+.dark .stat-green { --stat-color: hsl(152 70% 65%); --stat-bg: hsl(152 50% 15%); --stat-border: hsl(152 50% 22%); }
+.dark .stat-indigo { --stat-color: hsl(235 70% 70%); --stat-bg: hsl(235 45% 18%); --stat-border: hsl(235 45% 25%); }
+.dark .stat-cyan { --stat-color: hsl(185 70% 65%); --stat-bg: hsl(185 45% 15%); --stat-border: hsl(185 45% 22%); }
+.dark .stat-emerald { --stat-color: hsl(160 70% 60%); --stat-bg: hsl(160 45% 15%); --stat-border: hsl(160 45% 22%); }
+.dark .stat-rose { --stat-color: hsl(350 70% 70%); --stat-bg: hsl(350 45% 18%); --stat-border: hsl(350 45% 25%); }
+
+/* Progress bar colors - muted for dark mode */
+.dark .progress-blue { background: hsl(217 55% 50%); }
+.dark .progress-green { background: hsl(152 55% 45%); }
+.dark .progress-indigo { background: hsl(235 50% 50%); }
+.dark .progress-cyan { background: hsl(185 50% 45%); }
+.dark .progress-emerald { background: hsl(160 50% 45%); }
+.dark .progress-rose { background: hsl(350 55% 55%); }
+
+/* Slow pulse animation for order button */
+@keyframes pulse-slow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.25s ease-out;
+}
+
+/* Mobile: prevent horizontal scroll globally, but allow inner scroll containers */
+@media (max-width: 768px) {
+  html {
+    overflow-x: hidden;
+  }
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Allow horizontal scroll inside specific containers */
+  .overflow-x-auto, [class*="overflow-x-auto"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile: improve touch targets */
+@media (max-width: 768px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes shake {
+  0% { transform: scale(1.02) rotate(-1deg); }
+  50% { transform: scale(1) rotate(0); }
+  100% { transform: scale(1.02) rotate(1deg); }
+}
+
+.shake {
+  animation: shake 0.4s infinite alternate;
+}
+
+.shake:focus {
+  animation: none;
+}
+
+/* Prevent iOS auto-zoom on inputs/selects */
+input[type="text"],
+input[type="tel"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="date"],
+input[type="month"],
+select,
+textarea {
+  font-size: 16px !important;
+}
