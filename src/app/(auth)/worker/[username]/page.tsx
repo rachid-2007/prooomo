@@ -56,6 +56,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
   const [username, setUsername] = useState<string>("");
   const [worker, setWorker] = useState<Worker | null>(null);
   const [orders, setOrders] = useState<OrderData[]>([]);
+  const [abandonedOrders, setAbandonedOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterKey>("ALL");
@@ -100,6 +101,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
       const data = await res.json();
       setWorker(data.worker);
       setOrders(data.orders || []);
+      setAbandonedOrders(data.abandonedOrders || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -111,9 +113,28 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
     loadOrders();
   }, [loadOrders]);
 
-  const getStatusCount = (status: StatusKey) => orders.filter((o) => o.status === status).length;
+  const allOrders = useMemo(() => [...orders, ...abandonedOrders], [orders, abandonedOrders]);
 
-  const handleStatusChange = async (orderId: string, newStatus: StatusKey) => {
+  const getStatusCount = (status: StatusKey) => allOrders.filter((o) => o.status === status).length;
+
+  const handleStatusChange = async (orderId: string, newStatus: StatusKey, isAbandoned?: boolean) => {
+    if (isAbandoned) {
+      setAbandonedOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+      try {
+        await fetch(`/api/worker/${username}/orders`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, status: newStatus, isAbandoned: true }),
+        });
+      } catch {
+        loadOrders();
+      }
+      return;
+    }
     setOrders((prev) =>
       prev.map((order) =>
         order.id === orderId ? { ...order, status: newStatus } : order
@@ -130,12 +151,17 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
     }
   };
 
-  const handleDeleteOrder = async (orderId: string) => {
+  const handleDeleteOrder = async (orderId: string, isAbandoned?: boolean) => {
     if (!confirm("هل أنت متأكد من حذف هذا الطلب؟")) return;
     try {
-      const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+      const endpoint = isAbandoned ? `/api/orders/abandoned/${orderId}` : `/api/orders/${orderId}`;
+      const res = await fetch(endpoint, { method: "DELETE" });
       if (res.ok) {
-        setOrders((prev) => prev.filter((order) => order.id !== orderId));
+        if (isAbandoned) {
+          setAbandonedOrders((prev) => prev.filter((order) => order.id !== orderId));
+        } else {
+          setOrders((prev) => prev.filter((order) => order.id !== orderId));
+        }
       }
     } catch {
       loadOrders();
@@ -145,8 +171,10 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
   const handleViewOrder = async (order: OrderData) => {
     setDetailsOpen(true);
     setViewOrder({ ...order, statusHistory: [] });
+    const isAbandoned = (order as any)._isAbandoned;
     try {
-      const res = await fetch(`/api/orders/${order.id}`);
+      const endpoint = isAbandoned ? `/api/orders/abandoned/${order.id}` : `/api/orders/${order.id}`;
+      const res = await fetch(endpoint);
       if (res.ok) {
         const full = await res.json();
         setViewOrder(full);
@@ -197,7 +225,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
     }
   };
 
-  const filteredOrders = orders.filter((order) => {
+  const filteredOrders = allOrders.filter((order) => {
     if (filterStatus !== "ALL") return order.status === filterStatus;
     return true;
   }).filter((order) => {
@@ -213,7 +241,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
 
   const activeStatuses = useMemo(() => {
     const statusCounts: Partial<Record<StatusKey, number>> = {};
-    orders.forEach((order) => {
+    allOrders.forEach((order) => {
       const s = order.status as StatusKey;
       statusCounts[s] = (statusCounts[s] || 0) + 1;
     });
@@ -256,7 +284,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
               <span className={`h-7 w-7 rounded-lg flex items-center justify-center text-xs font-bold ${
                 filterStatus === "ALL" ? "bg-background text-foreground" : "bg-background text-muted-foreground"
               }`}>
-                {orders.length}
+                {allOrders.length}
               </span>
               <span className="whitespace-nowrap">الكل</span>
             </button>
@@ -375,8 +403,8 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
                   order={order as any}
                   onView={() => handleViewOrder(order)}
                   onEdit={() => handleEditOrder(order)}
-                  onDelete={() => handleDeleteOrder(order.id)}
-                  onStatusChange={(status) => handleStatusChange(order.id, status)}
+                  onDelete={() => handleDeleteOrder(order.id, (order as any)._isAbandoned)}
+                  onStatusChange={(status) => handleStatusChange(order.id, status, (order as any)._isAbandoned)}
                 />
               ))}
             </div>
