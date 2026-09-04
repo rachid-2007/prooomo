@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { compressImages } from "@/lib/compress-image";
+import { jwtVerify } from "jose";
+
+const authSecret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret-key");
+
+async function getUserIdFromToken(request: Request): Promise<string | null> {
+  try {
+    const token = request.headers.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
+    if (!token) return null;
+    const { payload } = await jwtVerify(token, authSecret);
+    return (payload.id as string) || null;
+  } catch { return null; }
+}
 
 export async function GET(request: Request) {
   try {
@@ -125,6 +137,8 @@ export async function POST(request: Request) {
     const imagesStr = Array.isArray(images) ? JSON.stringify(images) : (images || "[]");
     const { images: compressedImages, thumbnail } = await compressImages(imagesStr);
 
+    const ownerId = await getUserIdFromToken(request);
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -136,6 +150,7 @@ export async function POST(request: Request) {
         initialStock: initialStock || 0,
         images: compressedImages,
         thumbnail,
+        ownerId: ownerId || undefined,
         variants: variants
           ? {
               create: variants.map((v: any) => ({

@@ -29,7 +29,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, username, role, password, phone, isActive } = body;
+    const { name, username, role, password, phone, isActive, storeSlug } = body;
 
     const existing = await prisma.user.findUnique({ where: { id } });
     if (!existing) {
@@ -49,6 +49,7 @@ export async function PUT(
     if (role) updateData.role = role;
     if (phone !== undefined) updateData.phone = phone;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (storeSlug !== undefined) updateData.storeSlug = storeSlug || null;
     if (password && password.trim() !== "") {
       updateData.password = await bcrypt.hash(password, 10);
     }
@@ -63,6 +64,7 @@ export async function PUT(
         username: true,
         role: true,
         phone: true,
+        storeSlug: true,
         isActive: true,
         createdAt: true,
       },

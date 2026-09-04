@@ -15,6 +15,7 @@ interface User {
   username: string;
   role: string;
   phone: string | null;
+  storeSlug: string | null;
   isActive: boolean;
 }
 
@@ -41,6 +42,7 @@ export default function UsersPage() {
     password: "",
     role: "WORKER",
     phone: "",
+    storeSlug: "",
   });
   const [editData, setEditData] = useState({
     name: "",
@@ -48,6 +50,7 @@ export default function UsersPage() {
     role: "",
     password: "",
     phone: "",
+    storeSlug: "",
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -95,7 +98,7 @@ export default function UsersPage() {
       if (!res.ok) { setError(data.error); setSaving(false); return; }
       setUsers([data, ...users]);
       setShowForm(false);
-      setFormData({ name: "", email: "", username: "", password: "", role: "WORKER", phone: "" });
+      setFormData({ name: "", email: "", username: "", password: "", role: "WORKER", phone: "", storeSlug: "" });
     } catch { setError("حدث خطأ"); }
     setSaving(false);
   };
@@ -134,6 +137,7 @@ export default function UsersPage() {
       role: user.role,
       password: "",
       phone: user.phone || "",
+      storeSlug: user.storeSlug || "",
     });
     setShowEdit(user);
     setError("");
@@ -264,6 +268,9 @@ export default function UsersPage() {
                       {user.phone && (
                         <p className="text-[11px] text-muted-foreground" dir="ltr">{user.phone}</p>
                       )}
+                      {user.storeSlug && (
+                        <a href={`/stores/${user.storeSlug}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-purple-500 dark:text-purple-400 hover:underline" dir="ltr">stores/{user.storeSlug} ↗</a>
+                      )}
 
                       {/* Actions */}
                       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -327,6 +334,7 @@ export default function UsersPage() {
                 <Input placeholder="البريد الإلكتروني" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required dir="ltr" className="h-11 rounded-xl" />
                 <Input placeholder="كلمة المرور" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required dir="ltr" className="h-11 rounded-xl" />
                 <Input placeholder="رقم الهاتف (اختياري)" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} dir="ltr" className="h-11 rounded-xl" />
+                <Input placeholder="رابط المتجر (مثلا: my-store)" value={formData.storeSlug} onChange={(e) => setFormData({ ...formData, storeSlug: e.target.value.replace(/[^a-z0-9-]/g, "") })} dir="ltr" className="h-11 rounded-xl" />
                 <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="flex h-11 w-full rounded-xl border border-border bg-card px-3 text-sm font-bold">
                   <option value="WORKER">عامل</option>
                   <option value="ADMIN">مدير</option>
@@ -374,6 +382,11 @@ export default function UsersPage() {
                 <div>
                   <label className="text-xs font-bold text-muted-foreground mb-1 block">رقم الهاتف</label>
                   <Input placeholder="رقم الهاتف" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} dir="ltr" className="h-11 rounded-xl" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground mb-1 block">رابط المتجر</label>
+                  <Input placeholder="my-store" value={editData.storeSlug} onChange={(e) => setEditData({ ...editData, storeSlug: e.target.value.replace(/[^a-z0-9-]/g, "") })} dir="ltr" className="h-11 rounded-xl" />
+                  {editData.storeSlug && <p className="text-[10px] text-muted-foreground mt-1" dir="ltr">prooomo.vercel.app/stores/{editData.storeSlug}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-bold text-muted-foreground mb-1 block">كلمة المرور الجديدة (اتركها فارغة)</label>
