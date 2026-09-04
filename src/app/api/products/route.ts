@@ -14,6 +14,15 @@ async function getUserIdFromToken(request: Request): Promise<string | null> {
   } catch { return null; }
 }
 
+async function getUserRoleFromToken(request: Request): Promise<string | null> {
+  try {
+    const token = request.headers.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
+    if (!token) return null;
+    const { payload } = await jwtVerify(token, authSecret);
+    return (payload.role as string) || null;
+  } catch { return null; }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -22,7 +31,15 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
 
+    const userId = await getUserIdFromToken(request);
+    const userRole = await getUserRoleFromToken(request);
+
     const where: any = {};
+
+    // Non-admin users only see their own products
+    if (userId && userRole !== "ADMIN") {
+      where.ownerId = userId;
+    }
 
     if (slug) {
       where.slug = slug;
