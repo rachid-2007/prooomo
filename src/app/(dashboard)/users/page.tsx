@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/components/providers/auth-provider";
-import { X, ExternalLink, Pencil, Plus, Users, User, Shield, Trash2, Loader2 } from "lucide-react";
+import { X, ExternalLink, Pencil, Plus, Users, User, Shield, Trash2, Loader2, Search } from "lucide-react";
 
 interface User {
   id: string;
@@ -23,6 +23,7 @@ interface Product {
   id: string;
   name: string;
   price: number;
+  thumbnail: string;
 }
 
 export default function UsersPage() {
@@ -54,6 +55,7 @@ export default function UsersPage() {
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
 
   useEffect(() => {
     if (!authLoading && !currentUser) router.push("/login");
@@ -78,9 +80,9 @@ export default function UsersPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("/api/products");
+      const res = await fetch("/api/products/cards?limit=500");
       const data = await res.json();
-      setProducts(data.products || []);
+      setProducts((data.products || []).map((p: any) => ({ id: p.id, name: p.name, price: p.price, thumbnail: p.thumbnail || "" })));
     } catch {}
   };
 
@@ -404,50 +406,87 @@ export default function UsersPage() {
       {/* ===== ASSIGN PRODUCTS MODAL ===== */}
       {showAssign && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => setShowAssign(null)} />
+          <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => { setShowAssign(null); setProductSearch(""); }} />
           <div className="fixed inset-0 z-[61] flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
             <div className="bg-card rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[85vh] overflow-hidden shadow-2xl">
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                <h3 className="text-lg font-bold">تخصيص المنتجات</h3>
-                <button onClick={() => setShowAssign(null)} className="p-2 rounded-xl hover:bg-muted">
+                <div>
+                  <h3 className="text-lg font-bold">تخصيص المنتجات</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    اختر المنتجات التي يراها هذا العامل
+                  </p>
+                </div>
+                <button onClick={() => { setShowAssign(null); setProductSearch(""); }} className="p-2 rounded-xl hover:bg-muted">
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className="px-5 py-4 overflow-y-auto max-h-[calc(85vh-80px)]">
-                <p className="text-xs text-muted-foreground mb-3">اختر المنتجات التي يراها العامل:</p>
+              <div className="px-5 py-3 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="بحث عن منتج..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="pr-9 h-10 rounded-xl text-sm"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  تم تحديد <span className="font-bold text-primary">{selectedProducts.length}</span> منتج
+                </p>
+              </div>
+              <div className="px-5 py-3 overflow-y-auto max-h-[calc(85vh-160px)]">
                 {products.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">لا توجد منتجات</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {products.map((product) => (
-                      <label
-                        key={product.id}
-                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                          selectedProducts.includes(product.id)
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-border/80"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedProducts.includes(product.id)}
-                          onChange={() => toggleProduct(product.id)}
-                          className="h-4 w-4 rounded"
-                        />
-                        <span className="flex-1 text-sm font-bold">{product.name}</span>
-                        <span className="text-xs text-muted-foreground">{product.price.toLocaleString()} دج</span>
-                      </label>
-                    ))}
+                    {products
+                      .filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                      .map((product) => {
+                        const isSelected = selectedProducts.includes(product.id);
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => toggleProduct(product.id)}
+                            className={`flex items-center gap-3 p-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                              isSelected
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-border/80"
+                            }`}
+                          >
+                            <div className="h-11 w-11 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                              <img
+                                src={product.thumbnail || `/api/products/${product.id}/image/0?size=80`}
+                                alt={product.name}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold truncate">{product.name}</p>
+                              <p className="text-xs text-muted-foreground">{product.price.toLocaleString()} دج</p>
+                            </div>
+                            <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
+                              isSelected ? "border-primary bg-primary" : "border-muted-foreground/30"
+                            }`}>
+                              {isSelected && (
+                                <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
-                <div className="flex gap-2 mt-4">
-                  <Button onClick={saveAssign} disabled={saving} className="flex-1 h-11 rounded-xl font-bold">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowAssign(null)} className="h-11 rounded-xl font-bold">
-                    إلغاء
-                  </Button>
-                </div>
+              </div>
+              <div className="px-5 py-3 border-t border-border flex gap-2">
+                <Button onClick={saveAssign} disabled={saving} className="flex-1 h-11 rounded-xl font-bold">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+                </Button>
+                <Button variant="outline" onClick={() => { setShowAssign(null); setProductSearch(""); }} className="h-11 rounded-xl font-bold">
+                  إلغاء
+                </Button>
               </div>
             </div>
           </div>
