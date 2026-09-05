@@ -62,6 +62,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
   const [filterStatus, setFilterStatus] = useState<FilterKey>("ALL");
   const [search, setSearch] = useState("");
   const [timeFilter, setTimeFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"orders" | "abandoned">("orders");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -113,9 +114,9 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
     loadOrders();
   }, [loadOrders]);
 
-  const allOrders = useMemo(() => [...orders, ...abandonedOrders], [orders, abandonedOrders]);
+  const sourceOrders = viewMode === "orders" ? orders : abandonedOrders;
 
-  const getStatusCount = (status: StatusKey) => allOrders.filter((o) => o.status === status).length;
+  const getStatusCount = (status: StatusKey) => sourceOrders.filter((o) => o.status === status).length;
 
   const handleStatusChange = async (orderId: string, newStatus: StatusKey, isAbandoned?: boolean) => {
     if (isAbandoned) {
@@ -188,7 +189,11 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
   };
 
   const handleSaveEdit = (updated: OrderData) => {
-    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    if ((updated as any)._isAbandoned) {
+      setAbandonedOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    } else {
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    }
   };
 
   const isWithinTimeFilter = (date: Date) => {
@@ -225,7 +230,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
     }
   };
 
-  const filteredOrders = allOrders.filter((order) => {
+  const filteredOrders = sourceOrders.filter((order) => {
     if (filterStatus !== "ALL") return order.status === filterStatus;
     return true;
   }).filter((order) => {
@@ -241,14 +246,14 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
 
   const activeStatuses = useMemo(() => {
     const statusCounts: Partial<Record<StatusKey, number>> = {};
-    allOrders.forEach((order) => {
+    sourceOrders.forEach((order) => {
       const s = order.status as StatusKey;
       statusCounts[s] = (statusCounts[s] || 0) + 1;
     });
     return Object.entries(statusCounts)
       .filter(([_, count]) => count! > 0)
       .map(([status]) => status as StatusKey);
-  }, [orders]);
+  }, [sourceOrders]);
 
   if (!username) return null;
 
@@ -258,7 +263,14 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
         {/* Page Header */}
         <div className="bg-card border-b border-border px-4 py-3 sticky top-0 z-30">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl sm:text-2xl font-black">طلباتي</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black">طلباتي</h1>
+              {viewMode === "abandoned" && (
+                <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-bold">
+                  متروكة ({abandonedOrders.length})
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -269,6 +281,32 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </Button>
             </div>
+          </div>
+
+          {/* View Toggle: الطلبات / متروكة */}
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => { setViewMode(viewMode === "orders" ? "abandoned" : "orders"); setFilterStatus("ALL"); }}
+              className="flex-shrink-0 h-9 w-[150px] bg-muted rounded-xl p-1 flex items-center relative cursor-pointer"
+            >
+              <div
+                className={`absolute top-1 bottom-1 w-[71px] rounded-lg shadow-sm transition-all duration-200 ${
+                  viewMode === "orders"
+                    ? "right-1 bg-primary"
+                    : "left-1 bg-amber-500"
+                }`}
+              />
+              <span className={`relative z-10 flex-1 text-center text-[11px] font-bold transition-colors ${
+                  viewMode === "orders" ? "text-primary-foreground" : "text-muted-foreground"
+                }`}>
+                الطلبات ({orders.length})
+              </span>
+              <span className={`relative z-10 flex-1 text-center text-[11px] font-bold transition-colors ${
+                  viewMode === "abandoned" ? "text-white" : "text-muted-foreground"
+                }`}>
+                متروكة ({abandonedOrders.length})
+              </span>
+            </button>
           </div>
 
           {/* Status Chips */}
@@ -284,7 +322,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
               <span className={`h-7 w-7 rounded-lg flex items-center justify-center text-xs font-bold ${
                 filterStatus === "ALL" ? "bg-background text-foreground" : "bg-background text-muted-foreground"
               }`}>
-                {allOrders.length}
+                {sourceOrders.length}
               </span>
               <span className="whitespace-nowrap">الكل</span>
             </button>
@@ -392,7 +430,9 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
           ) : filteredOrders.length === 0 ? (
             <div className="py-20 text-center">
               <Package className="h-14 w-14 mx-auto text-muted-foreground/20 mb-4" />
-              <p className="text-lg font-bold text-muted-foreground">لا توجد طلبات</p>
+              <p className="text-lg font-bold text-muted-foreground">
+                {viewMode === "abandoned" ? "لا توجد طلبات متروكة" : "لا توجد طلبات"}
+              </p>
               <p className="text-sm text-muted-foreground/60 mt-1">لم يتم العثور على طلبات تطابق الفلتر</p>
             </div>
           ) : (
