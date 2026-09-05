@@ -3,6 +3,7 @@ import { Cairo, Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { PwaRegister } from "@/components/layout/pwa-register";
 
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
@@ -23,8 +24,14 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "E-Commerce Admin",
-  description: "Professional E-Commerce Dashboard",
+  title: "Mega.Market",
+  description: "Mega.Market - إدارة الطلبات",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Mega.Market",
+  },
   other: {
     "mobile-web-app-capable": "yes",
   },
@@ -35,6 +42,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#7c3aed",
 };
 
 export default function RootLayout({
@@ -47,11 +55,13 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="antialiased">
         <AuthProvider>
           <ThemeProvider>{children}</ThemeProvider>
         </AuthProvider>
+        <PwaRegister />
       </body>
     </html>
   );

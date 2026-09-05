@@ -278,7 +278,8 @@ export default function OrdersPage() {
     setDetailsOpen(true);
     setViewOrder({ ...order, statusHistory: [] });
     try {
-      const endpoint = viewMode === "abandoned" ? `/api/orders/abandoned/${order.id}` : `/api/orders/${order.id}`;
+      const isAbandoned = (order as any)._isAbandoned || abandonedOrders.some((o) => o.id === order.id);
+      const endpoint = isAbandoned ? `/api/orders/abandoned/${order.id}` : `/api/orders/${order.id}`;
       const res = await fetch(endpoint);
       if (res.ok) {
         const full = await res.json();
@@ -286,6 +287,23 @@ export default function OrdersPage() {
       }
     } catch { /* keep basic data */ }
   };
+
+  // Deep link: open a specific order directly (e.g. from a push notification ?order=<id>)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const deepId = params.get("order");
+      if (!deepId || detailsOpen) return;
+      const found =
+        orders.find((o) => o.id === deepId) || abandonedOrders.find((o) => o.id === deepId);
+      if (found) {
+        if (abandonedOrders.some((o) => o.id === deepId)) setViewMode("abandoned");
+        handleViewOrder(found);
+        window.history.replaceState(null, "", "/orders");
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, abandonedOrders]);
 
   const handleEditOrder = (order: OrderWithRelations) => {
     setEditOrder(order);

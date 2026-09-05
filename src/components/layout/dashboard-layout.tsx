@@ -1,6 +1,7 @@
 "use client";
 
 import { Sidebar } from "./sidebar";
+import { NewOrderNotifier } from "../orders/new-order-notifier";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
@@ -55,6 +56,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
         {children}
       </main>
+      <NewOrderNotifier />
     </div>
   );
 }

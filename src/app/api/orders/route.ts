@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { sendTelegramMessage, formatOrderNotification } from "@/lib/telegram";
+import { sendNewOrderPush } from "@/lib/push";
 
 function getDateRange(time: string, dateFrom?: string, dateTo?: string): { gte?: Date; lte?: Date } | undefined {
   const now = new Date();
@@ -271,6 +272,25 @@ export async function POST(request: Request) {
       await sendTelegramMessage(telegramText);
     } catch (e) {
       console.error("Telegram notification failed:", e);
+    }
+
+    // Send Web Push notification to subscribed devices (phones even when site closed)
+    try {
+      const { sent } = await sendNewOrderPush({
+        orderId: order.id,
+        orderNumber,
+        productName: order.product?.name || "غير معروف",
+        customerName,
+        totalPrice,
+      });
+      if (sent > 0) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { pushNotifiedAt: new Date() },
+        });
+      }
+    } catch (e) {
+      console.error("Push notification failed:", e);
     }
 
     return NextResponse.json(order, { status: 201 });
