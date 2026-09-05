@@ -2,6 +2,7 @@
   "buildCommand": "npx prisma db push --schema=prisma/schema.postgres.prisma --accept-data-loss && npx prisma generate --schema=prisma/schema.postgres.prisma && npx next build --webpack",
   "outputDirectory": ".next",
   "installCommand": "npm install",
+  "regions": ["fra1"],
   "headers": [
     {
       "source": "/api/(.*)",

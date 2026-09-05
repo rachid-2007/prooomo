@@ -5,22 +5,13 @@ import { jwtVerify } from "jose";
 
 const authSecret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret-key");
 
-async function getUserIdFromToken(request: Request): Promise<string | null> {
+async function getAuthFromToken(request: Request): Promise<{ id: string | null; role: string | null }> {
   try {
     const token = request.headers.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
-    if (!token) return null;
+    if (!token) return { id: null, role: null };
     const { payload } = await jwtVerify(token, authSecret);
-    return (payload.id as string) || null;
-  } catch { return null; }
-}
-
-async function getUserRoleFromToken(request: Request): Promise<string | null> {
-  try {
-    const token = request.headers.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
-    if (!token) return null;
-    const { payload } = await jwtVerify(token, authSecret);
-    return (payload.role as string) || null;
-  } catch { return null; }
+    return { id: (payload.id as string) || null, role: (payload.role as string) || null };
+  } catch { return { id: null, role: null }; }
 }
 
 export async function GET(request: Request) {
@@ -31,8 +22,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    const userId = await getUserIdFromToken(request);
-    const userRole = await getUserRoleFromToken(request);
+    const { id: userId, role: userRole } = await getAuthFromToken(request);
 
     const where: any = {};
 
@@ -154,7 +144,7 @@ export async function POST(request: Request) {
     const imagesStr = Array.isArray(images) ? JSON.stringify(images) : (images || "[]");
     const { images: compressedImages, thumbnail } = await compressImages(imagesStr);
 
-    const ownerId = await getUserIdFromToken(request);
+    const { id: ownerId } = await getAuthFromToken(request);
 
     const product = await prisma.product.create({
       data: {
