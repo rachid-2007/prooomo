@@ -172,24 +172,29 @@ export async function POST(request: Request) {
       shippingPrice,
       notes,
       deviceId,
+      adminCreated,
     } = body;
 
     const clientIp = getClientIp(request);
     const userAgent = request.headers.get("user-agent")?.slice(0, 500) || null;
 
-    // Admin-created orders (quick order form) bypass anti-fake checks
-    let isAdmin = false;
-    try {
-      const { jwtVerify } = await import("jose");
-      const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret-key");
-      const token = request.headers.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
-      if (token) {
-        const { payload } = await jwtVerify(token, secret);
-        isAdmin = payload.role === "ADMIN";
-      }
-    } catch { /* not admin */ }
+    // Admin quick-order form bypasses anti-fake checks ONLY when it explicitly
+    // flags itself. Storefront orders always get checked, even if the browser
+    // happens to carry an admin cookie (e.g. owner testing from their phone).
+    let isAdminOrder = false;
+    if (adminCreated === true) {
+      try {
+        const { jwtVerify } = await import("jose");
+        const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret-key");
+        const token = request.headers.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
+        if (token) {
+          const { payload } = await jwtVerify(token, secret);
+          isAdminOrder = payload.role === "ADMIN";
+        }
+      } catch { /* not admin */ }
+    }
 
-    if (!isAdmin) {
+    if (!isAdminOrder) {
       // Anti-fake: blocked phone / IP / device
       const block = await findBlock(customerPhone, clientIp, deviceId || null);
       if (block) {

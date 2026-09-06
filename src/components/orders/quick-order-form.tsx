@@ -131,10 +131,11 @@ export function QuickOrderForm({ open, onClose, onOrderCreated }: QuickOrderForm
           wilayaId: wilayaDb?.id || null,
           baladyaId: shippingMethod === "home" ? baladya : null,
           customerAddress: shippingMethod === "office" ? selectedOffice : null,
-          deliveryMethod: shippingMethod,
-          colorId: selectedColor || null,
-          sizeId: selectedSize || null,
-        }),
+            deliveryMethod: shippingMethod,
+            colorId: selectedColor || null,
+            sizeId: selectedSize || null,
+            adminCreated: true,
+          }),
       });
       if (!res.ok) throw new Error("Failed");
       setName(""); setPhone(""); setSelectedProductId(""); setQuantity(1); setWilaya(""); setBaladya(""); setSelectedOffice(""); setSelectedColor(""); setSelectedSize("");
