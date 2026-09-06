@@ -26,23 +26,51 @@ interface NewOrderToast {
 const POLL_MS = 20000;
 const STORE_KEY = "new-order-sound";
 
-// Classic two-tone order chime (ding-dong x2), synthesized - no audio files needed
-function playChime(ctx: AudioContext) {
-  const notes = [880, 659.25, 880, 659.25]; // A5, E5, A5, E5
-  const now = ctx.currentTime;
-  notes.forEach((freq, i) => {
+// Cash-register "cha-ching" bell like Shopify/YouCan, synthesized - no audio files needed
+function playOrderBell(ctx: AudioContext) {
+  const t0 = ctx.currentTime + 0.01;
+
+  // 1. "cha" - short metallic snap (filtered noise burst)
+  const noiseLen = 0.09;
+  const buf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * noiseLen)), ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buf;
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = 3600;
+  band.Q.value = 1.1;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.4, t0);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, t0 + noiseLen);
+  noise.connect(band);
+  band.connect(noiseGain);
+  noiseGain.connect(ctx.destination);
+  noise.start(t0);
+
+  // 2. "ching" - bright bell (inharmonic partials, long decay)
+  const t1 = t0 + 0.07;
+  const partials = [
+    { f: 1318.5, g: 0.5, dec: 1.0 }, // E6
+    { f: 1975.5, g: 0.28, dec: 0.7 }, // B6
+    { f: 2637.0, g: 0.16, dec: 0.45 }, // E7
+    { f: 3520.0, g: 0.08, dec: 0.3 }, // A7 shimmer
+  ];
+  partials.forEach(({ f, g, dec }) => {
     const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
     osc.type = "sine";
-    osc.frequency.value = freq;
-    const t = now + i * 0.28;
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.5, t + 0.03);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+    osc.frequency.value = f;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t1);
+    gain.gain.exponentialRampToValueAtTime(g, t1 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t1 + dec);
     osc.connect(gain);
     gain.connect(ctx.destination);
-    osc.start(t);
-    osc.stop(t + 0.3);
+    osc.start(t1);
+    osc.stop(t1 + dec + 0.05);
   });
 }
 
@@ -240,7 +268,7 @@ export function NewOrderNotifier() {
     if (next) {
       const ctx = ensureAudio();
       if (ctx) {
-        try { playChime(ctx); } catch { /* ignore */ }
+        try { playOrderBell(ctx); } catch { /* ignore */ }
       }
     }
   };
@@ -254,7 +282,7 @@ export function NewOrderNotifier() {
     if (soundOnRef.current) {
       const ctx = ensureAudio();
       if (ctx) {
-        try { playChime(ctx); } catch { /* ignore */ }
+        try { playOrderBell(ctx); } catch { /* ignore */ }
       }
     }
     const shown = items.slice(0, 3);
