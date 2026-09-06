@@ -81,6 +81,7 @@ export function NewOrderNotifier() {
   const [phoneBusy, setPhoneBusy] = useState(false);
   const [phoneMsg, setPhoneMsg] = useState<string | null>(null);
   const seenIds = useRef<Set<string>>(new Set());
+  const bellRung = useRef<Set<string>>(new Set());
   const baselineSet = useRef(false);
   const audioCtx = useRef<AudioContext | null>(null);
   const soundOnRef = useRef(true);
@@ -129,18 +130,37 @@ export function NewOrderNotifier() {
     } catch { /* ignore */ }
   }, []);
 
-  // Receive order ids already shown via real push (service worker relay) - no duplicates
+  // Ring the bell (twice) - used for new orders, push relay and preview
+  const ringBell = useCallback(() => {
+    if (!soundOnRef.current) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    try {
+      playOrderBell(ctx);
+    } catch { /* ignore */ }
+    setTimeout(() => {
+      try {
+        if (soundOnRef.current && audioCtx.current) playOrderBell(audioCtx.current);
+      } catch { /* ignore */ }
+    }, 650);
+  }, [ensureAudio]);
+
+  // Real push arrived while the app is open: ring our bell instantly.
+  // The poller will show the toast later (bellRung prevents a second ring).
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     const onMessage = (event: MessageEvent) => {
       const data = event.data as { type?: string; orderId?: string } | null;
       if (data && data.type === "push-shown" && data.orderId) {
-        seenIds.current.add(data.orderId);
+        if (!seenIds.current.has(data.orderId)) {
+          ringBell();
+          bellRung.current.add(data.orderId);
+        }
       }
     };
     navigator.serviceWorker.addEventListener("message", onMessage);
     return () => navigator.serviceWorker.removeEventListener("message", onMessage);
-  }, []);
+  }, [ringBell]);
 
   // Check phone push status on mount (existing subscription + server config)
   useEffect(() => {
@@ -266,10 +286,7 @@ export function NewOrderNotifier() {
       localStorage.setItem(STORE_KEY, next ? "on" : "off");
     } catch { /* ignore */ }
     if (next) {
-      const ctx = ensureAudio();
-      if (ctx) {
-        try { playOrderBell(ctx); } catch { /* ignore */ }
-      }
+      ringBell();
     }
   };
 
@@ -279,11 +296,10 @@ export function NewOrderNotifier() {
 
   const notify = useCallback((items: NewOrderToast[]) => {
     if (items.length === 0) return;
-    if (soundOnRef.current) {
-      const ctx = ensureAudio();
-      if (ctx) {
-        try { playOrderBell(ctx); } catch { /* ignore */ }
-      }
+    // Ring unless the bell already rang for these via the push relay
+    const needsBell = items.some((t) => !bellRung.current.has(t.id));
+    if (needsBell) {
+      ringBell();
     }
     const shown = items.slice(0, 3);
     setToasts((prev) => [...shown, ...prev].slice(0, 4));
@@ -304,7 +320,7 @@ export function NewOrderNotifier() {
         };
       }
     } catch { /* ignore */ }
-  }, [ensureAudio, dismiss, router]);
+  }, [ringBell, dismiss, router]);
 
   useEffect(() => {
     let stopped = false;

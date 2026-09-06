@@ -21,6 +21,8 @@ self.addEventListener("push", (event) => {
         body,
         tag: orderId ? `order-${orderId}` : "new-order",
         renotify: true,
+        requireInteraction: true,
+        vibrate: [250, 120, 250, 120, 400],
         icon: "/icon-192.png",
         badge: "/icon-192.png",
         dir: "rtl",
