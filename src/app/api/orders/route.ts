@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { sendTelegramMessage, formatOrderNotification } from "@/lib/telegram";
 import { sendNewOrderPush } from "@/lib/push";
+import { getClientIp, findBlock, checkRateLimit, normalizePhone } from "@/lib/fraud";
 
 function getDateRange(time: string, dateFrom?: string, dateTo?: string): { gte?: Date; lte?: Date } | undefined {
   const now = new Date();
@@ -170,7 +171,40 @@ export async function POST(request: Request) {
       productPrice,
       shippingPrice,
       notes,
+      deviceId,
     } = body;
+
+    const clientIp = getClientIp(request);
+    const userAgent = request.headers.get("user-agent")?.slice(0, 500) || null;
+
+    // Admin-created orders (quick order form) bypass anti-fake checks
+    let isAdmin = false;
+    try {
+      const { jwtVerify } = await import("jose");
+      const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret-key");
+      const token = request.headers.get("cookie")?.match(/auth-token=([^;]+)/)?.[1];
+      if (token) {
+        const { payload } = await jwtVerify(token, secret);
+        isAdmin = payload.role === "ADMIN";
+      }
+    } catch { /* not admin */ }
+
+    if (!isAdmin) {
+      // Anti-fake: blocked phone / IP / device
+      const block = await findBlock(customerPhone, clientIp, deviceId || null);
+      if (block) {
+        return NextResponse.json(
+          { error: "تعذر إتمام الطلب، يرجى الاتصال بخدمة الزبائن" },
+          { status: 403 }
+        );
+      }
+
+      // Anti-fake: rate limits
+      const limit = await checkRateLimit(customerPhone, clientIp);
+      if (!limit.allowed) {
+        return NextResponse.json({ error: limit.reason }, { status: 429 });
+      }
+    }
 
     // Get next order number - find the highest existing number to avoid collisions
     const lastOrders = await prisma.$queryRaw<[{ max_num: bigint }]>`
@@ -201,7 +235,7 @@ export async function POST(request: Request) {
         variantId: variantId || null,
         offerId: offerId || null,
         customerName,
-        customerPhone,
+        customerPhone: normalizePhone(customerPhone),
         customerAddress: customerAddress || null,
         wilayaId: resolvedWilayaId,
         baladyaId: baladyaId || null,
@@ -210,6 +244,9 @@ export async function POST(request: Request) {
         shippingPrice: shippingPrice || 0,
         totalPrice,
         notes: notes || null,
+        ipAddress: clientIp,
+        userAgent,
+        deviceId: deviceId || null,
         statusHistory: {
           create: {
             newStatus: "NEW",

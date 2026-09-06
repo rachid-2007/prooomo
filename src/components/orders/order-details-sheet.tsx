@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { FraudSection } from "./fraud-section";
 import { StatusBadge, STATUS_CONFIG, type StatusKey } from "./status-badge";
 import { OrderWithRelations } from "@/types";
 import {
@@ -26,6 +27,7 @@ interface OrderDetailsSheetProps {
   order: OrderWithRelations | null;
   open: boolean;
   onClose: () => void;
+  canBlock?: boolean;
 }
 
 interface LiveRemark {
@@ -35,7 +37,7 @@ interface LiveRemark {
   date: string;
 }
 
-export function OrderDetailsSheet({ order, open, onClose }: OrderDetailsSheetProps) {
+export function OrderDetailsSheet({ order, open, onClose, canBlock = true }: OrderDetailsSheetProps) {
   const [copied, setCopied] = useState(false);
   const [liveRemarks, setLiveRemarks] = useState<LiveRemark[]>([]);
   const [loadingRemarks, setLoadingRemarks] = useState(false);
@@ -262,6 +264,17 @@ export function OrderDetailsSheet({ order, open, onClose }: OrderDetailsSheetPro
                 <span className="text-primary text-lg">{order.totalPrice.toLocaleString()} دج</span>
               </div>
             </div>
+
+            {/* Anti-fake protection (admin only) */}
+            {canBlock && (
+              <FraudSection
+                orderId={order.id}
+                phone={order.customerPhone}
+                ip={(order as any).ipAddress || null}
+                deviceId={(order as any).deviceId || null}
+                canBlock
+              />
+            )}
 
             {/* Status + Date */}
             <div className="flex items-center justify-between">

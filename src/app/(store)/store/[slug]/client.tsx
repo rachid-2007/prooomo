@@ -82,6 +82,20 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
   const abandonedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const abandonedSentRef = useRef(false);
 
+  // Stable device fingerprint for anti-fake tracking (phone/IP/device)
+  const getDeviceId = () => {
+    try {
+      let id = localStorage.getItem("mm_device");
+      if (!id) {
+        id = `d_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem("mm_device", id);
+      }
+      return id;
+    } catch {
+      return null;
+    }
+  };
+
   const isNameValid = customerName.trim().length >= 2;
   const isPhoneValid = /^(0[567]\d{8})$/.test(customerPhone);
   const isWilayaValid = wilaya !== "";
@@ -256,6 +270,7 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
         offerName: activeOffer ? `${activeOffer.quantity} قطع` : null,
         reason,
         deliveryMethod: shippingMethod,
+        deviceId: getDeviceId(),
       }),
     }).catch(() => {});
   }, [product, customerName, customerPhone, wilaya, shippingMethod, selectedOffice, baladya, baladyas, effectiveQuantity, activeOffer, shippingPrice, isPhoneValid]);
@@ -346,6 +361,7 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
           offerId: activeOffer?.id || null,
           colorId: selectedColor || null,
           sizeId: selectedSize || null,
+          deviceId: getDeviceId(),
         }),
       });
 

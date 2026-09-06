@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { normalizePhone } from '@/lib/fraud';
 
 function toOrderWithRelations(ao: any, productImageMap?: Map<string, string>) {
   const productImages = ao.productImages || "[]";
@@ -113,11 +114,12 @@ export async function POST(request: Request) {
       productPrice,
       shippingPrice,
       totalPrice,
-      offerId,
-      offerName,
-      reason,
-      deliveryMethod,
-    } = body;
+        offerId,
+        offerName,
+        reason,
+        deliveryMethod,
+        deviceId,
+      } = body;
 
     if (!productId || !customerPhone) {
       return NextResponse.json(
@@ -131,8 +133,8 @@ export async function POST(request: Request) {
         productId,
         productName: productName || '',
         productImages: productImages || null,
-        customerName: customerName || null,
-        customerPhone,
+          customerName: customerName || null,
+          customerPhone: normalizePhone(customerPhone),
         wilayaCode: wilayaCode || null,
         wilayaName: wilayaName || null,
         baladyaName: baladyaName || null,
@@ -141,11 +143,14 @@ export async function POST(request: Request) {
         productPrice: productPrice || null,
         shippingPrice: shippingPrice || null,
         totalPrice: totalPrice || null,
-        offerId: offerId || null,
-        offerName: offerName || null,
-        reason: reason || 'timeout',
-      },
-    });
+          offerId: offerId || null,
+          offerName: offerName || null,
+          reason: reason || 'timeout',
+          ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip")?.trim() || null,
+          userAgent: request.headers.get("user-agent")?.slice(0, 500) || null,
+          deviceId: deviceId || null,
+        },
+      });
 
     return NextResponse.json(abandonedOrder, { status: 201 });
   } catch (error) {

@@ -50,6 +50,9 @@ export type OrderWithRelations = {
   recoveryNote: string | null;
   purchasePrice?: number;
   consumedEntries?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  deviceId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   product: {

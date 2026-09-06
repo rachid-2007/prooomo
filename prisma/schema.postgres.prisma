@@ -170,6 +170,9 @@ model Order {
   recoveredAt         DateTime?
   recoveryMessageSent Boolean  @default(false)
   pushNotifiedAt      DateTime?
+  ipAddress           String?
+  userAgent           String?
+  deviceId            String?
   product             Product             @relation(fields: [productId], references: [id])
   variant         ProductVariant?     @relation(fields: [variantId], references: [id])
   offer           ProductOffer?       @relation(fields: [offerId], references: [id])
@@ -187,6 +190,8 @@ model Order {
   @@index([baladyaId])
   @@index([customerPhone])
   @@index([orderNumber])
+  @@index([ipAddress])
+  @@index([deviceId])
 }
 
 model OrderStatusHistory {
@@ -242,14 +247,19 @@ model AbandonedOrder {
   status          String   @default("NEW")
   deliveryReference String?
   shippingCompany String?
-  reason          String   @default("timeout")
-  statusHistory   String   @default("[]")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([customerPhone])
-  @@index([createdAt])
-}
+    reason          String   @default("timeout")
+    statusHistory   String   @default("[]")
+    ipAddress       String?
+    userAgent       String?
+    deviceId        String?
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+  
+    @@index([customerPhone])
+    @@index([createdAt])
+    @@index([ipAddress])
+    @@index([deviceId])
+  }
 
 model ProductPageView {
   id        String   @id @default(cuid())
@@ -381,4 +391,16 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model BlockedEntry {
+  id        String   @id @default(cuid())
+  type      String
+  value     String
+  note      String?
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@unique([type, value])
+  @@index([type])
 }

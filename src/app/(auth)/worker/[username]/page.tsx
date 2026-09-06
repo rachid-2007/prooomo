@@ -457,6 +457,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
         order={viewOrder}
         open={detailsOpen}
         onClose={() => { setDetailsOpen(false); setViewOrder(null); }}
+        canBlock={false}
       />
 
       <OrderEditSheet
