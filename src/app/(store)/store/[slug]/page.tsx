@@ -54,7 +54,7 @@ export default async function StoreProductPage({ params }: Props) {
         hasColors: true,
         hasSizes: true,
         offers: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, quantity: true, price: true, sortOrder: true } },
-        colors: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, image: true, sortOrder: true } },
+        colors: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, image: true, hex: true, sortOrder: true } },
         sizes: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, sortOrder: true } },
       },
     }));

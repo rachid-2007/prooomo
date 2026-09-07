@@ -34,7 +34,7 @@ interface Product {
   hasOffers: boolean;
   offers: { id: string; name: string; quantity: number; price: number; sortOrder: number }[];
   hasColors: boolean;
-  colors: { id: string; name: string; image: string; sortOrder: number }[];
+  colors: { id: string; name: string; image: string; hex?: string; sortOrder: number }[];
   hasSizes: boolean;
   sizes: { id: string; name: string; sortOrder: number }[];
 }
@@ -519,8 +519,8 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
                       {color.image ? (
                         <img src={color.image} alt={color.name} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="h-full w-full flex items-center justify-center text-xs font-bold text-gray-500" style={{ backgroundColor: color.name.includes("#") ? color.name : "#e5e7eb" }}>
-                          {color.name}
+                        <div className="h-full w-full flex items-center justify-center text-xs font-bold text-gray-500" style={{ backgroundColor: color.hex || (color.name.includes("#") ? color.name : "#e5e7eb") }}>
+                          {!color.hex && !color.name.includes("#") ? color.name : ""}
                         </div>
                       )}
                     </div>

@@ -33,10 +33,11 @@ export async function POST(
 
     if (colors.length > 0) {
       await prisma.productColor.createMany({
-        data: colors.map((c: { name: string; image?: string; stock?: number; sortOrder?: number; isActive?: boolean }, i: number) => ({
+        data: colors.map((c: { name: string; image?: string; hex?: string; stock?: number; sortOrder?: number; isActive?: boolean }, i: number) => ({
           productId: id,
           name: c.name,
           image: c.image || "",
+          hex: c.hex || "",
           stock: c.stock || 0,
           sortOrder: c.sortOrder ?? i,
           isActive: c.isActive ?? true,

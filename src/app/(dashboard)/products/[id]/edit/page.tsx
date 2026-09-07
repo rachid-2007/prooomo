@@ -11,6 +11,7 @@ import { RichTextEditor } from "@/components/products/rich-text-editor";
 import { ArrowRight, Save, Trash2, Loader2, Plus, X, Palette, Ruler } from "lucide-react";
 import Link from "next/link";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { ColorPicker } from "@/components/ui/color-picker";
 
 interface ProductMeta {
   id: string;
@@ -42,6 +43,7 @@ interface ProductColorItem {
   id?: string;
   name: string;
   image: string;
+  hex: string;
   stock: number;
   sortOrder: number;
   isActive: boolean;
@@ -73,6 +75,7 @@ export default function EditProductPage() {
   const [offers, setOffers] = useState<ProductOffer[]>([]);
   const [hasColors, setHasColors] = useState(false);
   const [colors, setColors] = useState<ProductColorItem[]>([]);
+  const [pickerIdx, setPickerIdx] = useState<number | null>(null);
   const [hasSizes, setHasSizes] = useState(false);
   const [sizes, setSizes] = useState<ProductSizeItem[]>([]);
 
@@ -469,6 +472,19 @@ export default function EditProductPage() {
                           }}
                           placeholder="اسم اللون"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setPickerIdx(idx)}
+                          className="w-full h-9 rounded-lg border border-border bg-background hover:border-primary/50 transition-colors flex items-center gap-2 px-2.5"
+                        >
+                          <span
+                            className="h-5 w-8 rounded-md ring-1 ring-border flex-shrink-0"
+                            style={{ backgroundColor: color.hex || "transparent" }}
+                          />
+                          <span className="text-xs font-mono font-bold text-muted-foreground" dir="ltr">
+                            {color.hex || "اختر اللون"}
+                          </span>
+                        </button>
                         <Input
                           type="number"
                           value={color.stock || ""}
@@ -491,10 +507,21 @@ export default function EditProductPage() {
                       </button>
                     </div>
                   ))}
+                  {pickerIdx !== null && colors[pickerIdx] && (
+                    <ColorPicker
+                      value={colors[pickerIdx].hex || "#396A9C"}
+                      onChange={(hex) => {
+                        const next = [...colors];
+                        next[pickerIdx] = { ...next[pickerIdx], hex };
+                        setColors(next);
+                      }}
+                      onClose={() => setPickerIdx(null)}
+                    />
+                  )}
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setColors([...colors, { name: "", image: "", stock: 0, sortOrder: colors.length, isActive: true }])}
+                    onClick={() => setColors([...colors, { name: "", image: "", hex: "", stock: 0, sortOrder: colors.length, isActive: true }])}
                     className="w-full"
                   >
                     <Plus className="h-4 w-4 ml-2" />
