@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { withDbRetry } from "@/lib/db-retry";
 import type { Metadata } from "next";
 import StoreClient from "./client";
 
@@ -9,10 +10,10 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const product = await prisma.product.findUnique({
+    const product = await withDbRetry(() => prisma.product.findUnique({
       where: { slug },
       select: { id: true, name: true, shortDescription: true, price: true },
-    });
+    }));
     if (!product) return { title: "المنتج غير موجود" };
 
     const imgUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://mega-market-alpha.vercel.app"}/api/products/${product.id}/image/0?size=800`;
@@ -39,7 +40,7 @@ export default async function StoreProductPage({ params }: Props) {
 
   let product = null;
   try {
-    product = await prisma.product.findUnique({
+    product = await withDbRetry(() => prisma.product.findUnique({
       where: { slug },
       select: {
         id: true,
@@ -56,7 +57,7 @@ export default async function StoreProductPage({ params }: Props) {
         colors: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, image: true, sortOrder: true } },
         sizes: { where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, sortOrder: true } },
       },
-    });
+    }));
   } catch {}
 
   if (!product) {

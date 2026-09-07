@@ -9,7 +9,16 @@ function createClient(): PrismaClient {
 
   if (url.startsWith("postgresql")) {
     const { PrismaPg } = require("@prisma/adapter-pg");
-    const adapter = new PrismaPg({ connectionString: url });
+    const { Pool } = require("pg");
+    // Generous timeouts: the DB (Neon) may be cold and need seconds to wake up.
+    // A failed first attempt surfaces as "not found" pages, so let it wait.
+    const pool = new Pool({
+      connectionString: url,
+      connectionTimeoutMillis: 20000,
+      idleTimeoutMillis: 30000,
+      max: 5,
+    });
+    const adapter = new PrismaPg(pool);
     return new PrismaClient({
       adapter,
       log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
