@@ -485,7 +485,7 @@ export function OrderEditSheet({ order, open, onClose, onSave }: OrderEditSheetP
                       <button key={offer.id} type="button"
                         onClick={() => { if (isSelected) return; setSelectedOfferId(offer.id); setQuantity(offer.quantity); setOrderItems(orderItems.map((i, idx) => idx === 0 ? { ...i, quantity: offer.quantity, productPrice: offer.price / offer.quantity } : i)); }}
                         className={cn("w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between", isSelected ? "border-primary bg-primary/5" : "border-border hover:border-border/80")}>
-                        <span className="font-bold text-sm">{offer.quantity} قطع</span>
+                        <span className="font-bold text-sm">{(offer as any).name || `${offer.quantity} قطع`}</span>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-primary">{offer.price.toLocaleString()} دج</span>
                           {isSelected && <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center"><div className="h-2 w-2 rounded-full bg-white" /></div>}

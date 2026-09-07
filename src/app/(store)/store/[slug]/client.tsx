@@ -267,7 +267,7 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
         shippingPrice,
         totalPrice: (activeOffer ? activeOffer.price : product.price * effectiveQuantity) + shippingPrice,
         offerId: activeOffer?.id || null,
-        offerName: activeOffer ? `${activeOffer.quantity} قطع` : null,
+        offerName: activeOffer ? (activeOffer.name || `${activeOffer.quantity} قطع`) : null,
         reason,
         deliveryMethod: shippingMethod,
         deviceId: getDeviceId(),
@@ -483,7 +483,7 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
                     backgroundColor: isSelected ? primaryBg : undefined,
                   }}
                 >
-                  <span className="font-bold text-gray-900">{offer.quantity} قطع</span>
+                  <span className="font-bold text-gray-900">{offer.name || `${offer.quantity} قطع`}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold whitespace-nowrap" style={{ color: pc }}>{offer.price.toLocaleString()} دج</span>
                     {isSelected && (
