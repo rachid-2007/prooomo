@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { requireAdmin, unauthorized } from "../../push/auth";
 
 // Statuses that represent a completed return (stock should be restored)
 const RETURN_STATUSES = ["RETURN_COMPLETED"];
@@ -46,6 +47,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
     const body = await request.json();
     const { status, notes, customerName, customerPhone, customerAddress, quantity, shippingPrice, wilayaId, baladyaId, totalPrice, deliveryReference, offerId, productPrice, colorId, sizeId, items } = body;
@@ -298,6 +301,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
 
     // Get order before deletion to restore stock if needed

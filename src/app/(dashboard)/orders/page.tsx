@@ -27,6 +27,8 @@ import {
   Clock,
   MessageSquareText,
   Plus,
+  ListChecks,
+  Trash2,
 } from "lucide-react";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 
@@ -70,6 +72,11 @@ export default function OrdersPage() {
   // Send mode
   const [sendMode, setSendMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Bulk select mode (select orders + apply an action)
+  const [selectMode, setSelectMode] = useState(false);
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+  const [bulkWorking, setBulkWorking] = useState(false);
 
   // Modals
   const [sending, setSending] = useState(false);
@@ -322,12 +329,83 @@ export default function OrdersPage() {
   // Send mode handlers
   const enterSendMode = () => {
     setSendMode(true);
+    setSelectMode(false);
     setSelectedIds(new Set());
   };
 
   const exitSendMode = () => {
     setSendMode(false);
     setSelectedIds(new Set());
+  };
+
+  // Bulk select mode handlers (select orders + apply status/delete)
+  const enterSelectMode = () => {
+    setSelectMode(true);
+    setSendMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setBulkStatusOpen(false);
+    setSelectedIds(new Set());
+  };
+
+  const BULK_STATUSES: StatusKey[] = [
+    "NEW", "CONFIRMED", "NOT_ANSWERED_1", "NOT_ANSWERED_2", "NOT_ANSWERED_3",
+    "PHONE_CLOSED_1", "PHONE_CLOSED_2", "PHONE_CLOSED_3",
+    "OUT_OF_COVERAGE_1", "OUT_OF_COVERAGE_2", "OUT_OF_COVERAGE_3",
+    "CANCELLED", "FAKE", "POSTPONED", "WAITING_CALLBACK",
+  ];
+
+  const handleBulkStatus = async (status: StatusKey) => {
+    if (selectedIds.size === 0) return;
+    setBulkWorking(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const endpoint = (id: string) =>
+        viewMode === "abandoned" ? `/api/orders/abandoned/${id}` : `/api/orders/${id}`;
+      await Promise.all(
+        ids.map((id) =>
+          fetch(endpoint(id), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+          }).catch(() => null)
+        )
+      );
+      if (viewMode === "abandoned") {
+        loadAbandoned();
+      } else {
+        loadOrders();
+      }
+    } finally {
+      setBulkWorking(false);
+      setBulkStatusOpen(false);
+      exitSelectMode();
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`حذف ${selectedIds.size} طلبات محددة؟ لا يمكن التراجع`)) return;
+    setBulkWorking(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const endpoint = (id: string) =>
+        viewMode === "abandoned" ? `/api/orders/abandoned/${id}` : `/api/orders/${id}`;
+      await Promise.all(
+        ids.map((id) => fetch(endpoint(id), { method: "DELETE" }).catch(() => null))
+      );
+      if (viewMode === "abandoned") {
+        loadAbandoned();
+      } else {
+        loadOrders();
+      }
+    } finally {
+      setBulkWorking(false);
+      exitSelectMode();
+    }
   };
 
   const toggleSelect = (id: string) => {
@@ -586,8 +664,18 @@ export default function OrdersPage() {
             </div>
             <div className="flex items-center gap-2">
               {/* Send Orders Button - Blue */}
-              {!sendMode ? (
+              {!sendMode && !selectMode ? (
                 <>
+                   <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 rounded-xl px-3 gap-1.5 font-bold text-xs"
+                    onClick={enterSelectMode}
+                    title="تحديد طلبات لتطبيق أمر جماعي"
+                  >
+                    <ListChecks className="h-4 w-4" />
+                    <span className="hidden sm:inline">تحديد</span>
+                  </Button>
                    <Button
                     variant="ghost"
                     size="icon"
@@ -638,7 +726,7 @@ export default function OrdersPage() {
                     <Plus className="h-4 w-4" />
                   </Button>
                 </>
-              ) : (
+              ) : sendMode ? (
                 <div className="flex items-center gap-2">
                   <Button
                     className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 gap-1.5 text-sm"
@@ -656,6 +744,19 @@ export default function OrdersPage() {
                     variant="outline"
                     className="h-10 rounded-xl font-bold text-sm"
                     onClick={exitSendMode}
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold px-2">
+                    محدد ({selectedIds.size})
+                  </span>
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-xl font-bold text-sm"
+                    onClick={exitSelectMode}
                   >
                     إلغاء
                   </Button>
@@ -1043,21 +1144,36 @@ export default function OrdersPage() {
                 <div className="space-y-2.5">
                   {(viewMode === "orders" ? filteredOrders : filteredAbandonedOrders).map((order) => {
                     return (
-                      <div key={order.id} className="relative">
-                        {viewMode === "abandoned" && (
-                          <div className="absolute -top-1 -right-1 z-10 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full shadow">
-                            متروك
-                          </div>
+                      <div key={order.id} className={cn(selectMode && "flex items-start gap-2", !selectMode && "relative")}>
+                        {selectMode && (
+                          <button
+                            onClick={() => toggleSelect(order.id)}
+                            className="mt-4 flex-shrink-0"
+                          >
+                            <div className={cn(
+                              "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors",
+                              selectedIds.has(order.id) ? "bg-primary border-primary" : "border-border"
+                            )}>
+                              {selectedIds.has(order.id) && <Check className="h-3 w-3 text-primary-foreground" />}
+                            </div>
+                          </button>
                         )}
-                        <OrderCard
-                          order={order}
-                          onView={() => handleViewOrder(order)}
-                          onEdit={() => handleEditOrder(order)}
-                          onDelete={() => handleDeleteOrder(order.id)}
-                          onStatusChange={(status) => handleStatusChange(order.id, status)}
-                          onReturnToConfirmed={() => handleReturnToConfirmed(order.id)}
-                        phoneWarning={phoneWarnings[order.id]}
-                        />
+                        <div className={cn("relative", selectMode && "flex-1 min-w-0")}>
+                          {viewMode === "abandoned" && (
+                            <div className="absolute -top-1 -right-1 z-10 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full shadow">
+                              متروك
+                            </div>
+                          )}
+                          <OrderCard
+                            order={order}
+                            onView={() => handleViewOrder(order)}
+                            onEdit={() => handleEditOrder(order)}
+                            onDelete={() => handleDeleteOrder(order.id)}
+                            onStatusChange={(status) => handleStatusChange(order.id, status)}
+                            onReturnToConfirmed={() => handleReturnToConfirmed(order.id)}
+                          phoneWarning={phoneWarnings[order.id]}
+                          />
+                        </div>
                       </div>
                     );
                   })}
@@ -1067,6 +1183,70 @@ export default function OrdersPage() {
           ) : null}
         </div>
       </div>
+
+      {/* Bulk select action bar */}
+      {selectMode && (
+        <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-4 sm:left-4 z-40">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl p-3 flex items-center gap-2 max-w-2xl mx-auto">
+            <span className="text-sm font-black px-2 whitespace-nowrap">
+              {selectedIds.size} محدد
+            </span>
+            <Button
+              className="flex-1 h-11 rounded-xl font-bold text-sm"
+              disabled={selectedIds.size === 0 || bulkWorking}
+              onClick={() => setBulkStatusOpen(true)}
+            >
+              {bulkWorking ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
+              تغيير الحالة
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 h-11 rounded-xl font-bold text-sm text-red-600 dark:text-red-400"
+              disabled={selectedIds.size === 0 || bulkWorking}
+              onClick={handleBulkDelete}
+            >
+              <Trash2 className="h-4 w-4 ml-2" />
+              حذف
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk status modal */}
+      {bulkStatusOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[60] animate-in fade-in duration-200" onClick={() => !bulkWorking && setBulkStatusOpen(false)} />
+          <div className="fixed inset-0 z-[61] flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-card rounded-3xl w-full max-w-sm max-h-[70vh] overflow-hidden shadow-2xl">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <h3 className="text-lg font-bold">تغيير حالة ({selectedIds.size})</h3>
+                <button onClick={() => !bulkWorking && setBulkStatusOpen(false)} className="p-2 rounded-xl hover:bg-muted transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="overflow-y-auto max-h-[calc(70vh-70px)] px-4 py-3">
+                <div className="space-y-1.5">
+                  {BULK_STATUSES.map((status) => {
+                    const config = STATUS_CONFIG[status];
+                    return (
+                      <button
+                        key={status}
+                        disabled={bulkWorking}
+                        onClick={() => handleBulkStatus(status)}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-150 active:scale-[0.98] border-border hover:border-border/80 hover:bg-muted/50 disabled:opacity-50"
+                      >
+                        <span className={cn("h-3 w-3 rounded-full flex-shrink-0", config.dot)} />
+                        <span className="text-sm font-bold">{config.label}</span>
+                        {bulkWorking && <Loader2 className="h-4 w-4 animate-spin mr-auto" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Send Result Modal */}
       {sendResult && (

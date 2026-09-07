@@ -445,6 +445,7 @@ export default function WorkerOrdersPage({ params }: { params: Promise<{ usernam
                   onEdit={() => handleEditOrder(order)}
                   onDelete={() => handleDeleteOrder(order.id, (order as any)._isAbandoned)}
                   onStatusChange={(status) => handleStatusChange(order.id, status, (order as any)._isAbandoned)}
+                  hideDelete
                 />
               ))}
             </div>

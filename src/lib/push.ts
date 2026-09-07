@@ -51,7 +51,7 @@ export async function sendNewOrderPush(order: NewOrderPush): Promise<{ sent: num
   const payload = JSON.stringify({
     type: "new-order",
     orderId: order.orderId,
-    title: "طلب جديد",
+    title: `طلب جديد ${order.orderNumber}`,
     body: `${order.productName} — ${order.customerName} — ${order.totalPrice.toLocaleString("en-US")} دج`,
     url: `/orders?order=${order.orderId}`,
   });

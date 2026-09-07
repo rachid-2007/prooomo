@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { requireAdmin, unauthorized } from "../../../push/auth";
 
 const RETURN_STATUSES = ["RETURN_COMPLETED"];
 
@@ -72,6 +73,8 @@ function toOrderWithRelations(ao: any) {
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
     const body = await request.json();
     const { status, customerName, customerPhone, quantity, productPrice, shippingPrice, totalPrice, deliveryReference, shippingCompany, wilayaCode, wilayaName, baladyaName, deliveryMethod } = body;
@@ -235,6 +238,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const admin = await requireAdmin(_request);
+    if (!admin) return unauthorized();
     const { id } = await params;
 
     const order = await prisma.abandonedOrder.findUnique({ where: { id } });

@@ -78,9 +78,10 @@ interface OrderCardProps {
   onStatusChange: (status: StatusKey) => void;
   onReturnToConfirmed?: () => void;
   phoneWarning?: ("return" | "duplicate")[];
+  hideDelete?: boolean;
 }
 
-export function OrderCard({ order, onView, onEdit, onDelete, onStatusChange, onReturnToConfirmed, phoneWarning }: OrderCardProps) {
+export function OrderCard({ order, onView, onEdit, onDelete, onStatusChange, onReturnToConfirmed, phoneWarning, hideDelete = false }: OrderCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [statusSheetOpen, setStatusSheetOpen] = useState(false);
   const [sending, setSending] = useState(false);
@@ -467,10 +468,10 @@ export function OrderCard({ order, onView, onEdit, onDelete, onStatusChange, onR
                     )}
                   </>
                 )}
-                {!order.deliveryReference && (
+                {!hideDelete && !order.deliveryReference && (
                   <div className="h-px bg-border my-1 mx-3" />
                 )}
-                {!order.deliveryReference && (
+                {!hideDelete && !order.deliveryReference && (
                   <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-destructive/10 transition-colors">
                     <div className="h-9 w-9 rounded-lg bg-red-50 dark:bg-red-950/50 flex items-center justify-center">
                       <Trash2 className="h-4.5 w-4.5 text-red-600 dark:text-red-400" />
