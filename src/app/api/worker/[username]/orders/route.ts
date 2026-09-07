@@ -116,6 +116,19 @@ export async function GET(
         variant: {
           select: { id: true, name: true, price: true, stock: true },
         },
+        orderItems: {
+          include: {
+            product: {
+              select: { id: true, name: true, images: true },
+            },
+            color: {
+              select: { id: true, name: true, image: true, hex: true },
+            },
+            size: {
+              select: { id: true, name: true },
+            },
+          },
+        },
         wilaya: {
           select: { id: true, name: true, code: true },
         },

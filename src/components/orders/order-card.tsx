@@ -273,7 +273,29 @@ export function OrderCard({ order, onView, onEdit, onDelete, onStatusChange, onR
                     }).join(" + ")}</p>
                   </>
                 ) : (
-                  <p className="text-xs font-bold truncate">x{order.quantity} {order.product?.name}{(order as any).color?.name ? ` (${(order as any).color.name})` : ""}{(order as any).size?.name ? ` [${(order as any).size.name}]` : ""}</p>
+                  <p className="text-xs font-bold truncate">
+                    x{order.quantity} {order.product?.name}
+                    {(() => {
+                      const firstItem = (order as any).orderItems?.[0];
+                      const cName = firstItem?.color?.name || (order as any).color?.name;
+                      const cHex = firstItem?.color?.hex;
+                      const sName = firstItem?.size?.name || (order as any).size?.name;
+                      return (
+                        <>
+                          {cName && (
+                            <span className="inline-flex items-center gap-1">
+                              {" ("}
+                              {cHex ? (
+                                <span className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-border" style={{ backgroundColor: cHex }} />
+                              ) : null}
+                              {cName})
+                            </span>
+                          )}
+                          {sName ? ` [${sName}]` : ""}
+                        </>
+                      );
+                    })()}
+                  </p>
                 )}
               </div>
             </div>
