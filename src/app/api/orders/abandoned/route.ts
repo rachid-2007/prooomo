@@ -85,8 +85,8 @@ export async function GET() {
     const productIds = [...new Set(abandonedOrders.filter(ao => !ao.productImages || ao.productImages === "[]" || ao.productImages === "").map(ao => ao.productId))];
     const productImageMap = new Map<string, string>();
     if (productIds.length > 0) {
-      const products = await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, images: true } });
-      for (const p of products) { productImageMap.set(p.id, p.images || "[]"); }
+      const products = await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, thumbnail: true } });
+      for (const p of products) { if (p.thumbnail) productImageMap.set(p.id, JSON.stringify([p.thumbnail])); }
     }
     return NextResponse.json(abandonedOrders.map(ao => toOrderWithRelations(ao, productImageMap)));
   } catch (error) {

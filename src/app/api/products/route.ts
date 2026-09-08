@@ -55,7 +55,7 @@ export async function GET(request: Request) {
       slug: true,
       shortDescription: true,
       price: true,
-      images: true,
+      thumbnail: true,
       stock: true,
       initialStock: true,
       isActive: true,

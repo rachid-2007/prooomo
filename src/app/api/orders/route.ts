@@ -95,7 +95,7 @@ export async function GET(request: Request) {
         where,
         include: {
           product: {
-            select: { id: true, name: true, slug: true, price: true, images: true },
+            select: { id: true, name: true, slug: true, price: true, thumbnail: true },
           },
           variant: {
             select: { id: true, name: true, price: true },
@@ -106,10 +106,10 @@ export async function GET(request: Request) {
           baladya: {
             select: { id: true, name: true, arabicName: true },
           },
-          orderItems: {
+            orderItems: {
             include: {
               product: {
-                select: { id: true, name: true, images: true },
+                select: { id: true, name: true, thumbnail: true },
               },
               color: {
                 select: { id: true, name: true, image: true, hex: true },

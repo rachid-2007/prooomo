@@ -63,6 +63,7 @@ export type OrderWithRelations = {
     fullDescription: string | null;
     price: number;
     images: string;
+    thumbnail?: string | null;
     orderCount: number;
     isActive: boolean;
     createdAt: Date;

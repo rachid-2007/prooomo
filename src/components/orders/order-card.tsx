@@ -88,25 +88,24 @@ export function OrderCard({ order, onView, onEdit, onDelete, onStatusChange, onR
   const [phoneRevealed, setPhoneRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const productImage = (() => {
+  const firstImageOf = (p: any): string | null => {
+    if (!p) return null;
+    if (p.thumbnail) return p.thumbnail;
     try {
-      const imgs = JSON.parse(order.product?.images || "[]");
+      const imgs = JSON.parse(p.images || "[]");
       return imgs[0] || null;
     } catch {
       return null;
     }
-  })();
+  };
 
-  const productImages = (() => {
+  const productImage = firstImageOf(order.product);
+
+  const productImages: string[] = (() => {
     if (order.orderItems && order.orderItems.length > 1) {
-      return order.orderItems.map((item: any) => {
-        try {
-          const imgs = JSON.parse(item.product?.images || "[]");
-          return imgs[0] || null;
-        } catch {
-          return null;
-        }
-      }).filter(Boolean);
+      return order.orderItems
+        .map((item: any) => firstImageOf(item.product))
+        .filter((x): x is string => !!x);
     }
     return [];
   })();

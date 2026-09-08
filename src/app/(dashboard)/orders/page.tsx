@@ -129,11 +129,13 @@ export default function OrdersPage() {
       if (res.ok) {
         const data = await res.json();
         const list = (data.products || []).map((p: any) => {
-          let img: string | null = null;
-          try {
-            const parsed = typeof p.images === "string" ? JSON.parse(p.images) : p.images;
-            img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
-          } catch {}
+          let img: string | null = p.thumbnail || null;
+          if (!img) {
+            try {
+              const parsed = typeof p.images === "string" ? JSON.parse(p.images) : p.images;
+              img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
+            } catch {}
+          }
           return { id: p.id, name: p.name, image: img };
         });
         setAllProducts(list);

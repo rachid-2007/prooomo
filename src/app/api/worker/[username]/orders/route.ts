@@ -106,7 +106,7 @@ export async function GET(
             shortDescription: true,
             fullDescription: true,
             price: true,
-            images: true,
+            thumbnail: true,
             orderCount: true,
             isActive: true,
             createdAt: true,
@@ -116,11 +116,11 @@ export async function GET(
         variant: {
           select: { id: true, name: true, price: true, stock: true },
         },
-        orderItems: {
-          include: {
-            product: {
-              select: { id: true, name: true, images: true },
-            },
+          orderItems: {
+            include: {
+              product: {
+                select: { id: true, name: true, thumbnail: true },
+              },
             color: {
               select: { id: true, name: true, image: true, hex: true },
             },

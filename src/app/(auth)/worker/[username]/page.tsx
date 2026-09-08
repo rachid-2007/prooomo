@@ -44,7 +44,7 @@ interface OrderData {
   shippingCompany: string | null;
   createdAt: string;
   updatedAt: string;
-  product: { id: string; name: string; slug: string; shortDescription: string | null; fullDescription: string | null; price: number; images: string; orderCount: number; isActive: boolean; createdAt: string; updatedAt: string };
+  product: { id: string; name: string; slug: string; shortDescription: string | null; fullDescription: string | null; price: number; images: string; thumbnail?: string | null; orderCount: number; isActive: boolean; createdAt: string; updatedAt: string };
   variant: { id: string; name: string; price: number; stock: number } | null;
   wilaya: { id: string; name: string; code: string; baladyas: any[]; orders: any[] };
   baladya: { id: string; name: string; arabicName: string | null; wilayaId: string; code: string | null; orders: any[] } | null;

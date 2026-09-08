@@ -154,7 +154,7 @@ export function OrderEditSheet({ order, open, onClose, onSave }: OrderEditSheetP
     if (order.orderItems && order.orderItems.length > 0) {
       setOrderItems(order.orderItems.map((item: any) => {
         let imageUrl = null;
-        try { const imgs = JSON.parse(item.product?.images || "[]"); imageUrl = imgs[0] || null; } catch {}
+        try { imageUrl = item.product?.thumbnail || null; if (!imageUrl) { const imgs = JSON.parse(item.product?.images || "[]"); imageUrl = imgs[0] || null; } } catch {}
         return {
           productId: item.productId,
           productName: item.product?.name || "منتج",
@@ -167,7 +167,7 @@ export function OrderEditSheet({ order, open, onClose, onSave }: OrderEditSheetP
       }));
     } else if (order.productId) {
       let imageUrl = null;
-      try { const imgs = JSON.parse(order.product?.images || "[]"); imageUrl = imgs[0] || null; } catch {}
+      try { imageUrl = (order.product as any)?.thumbnail || null; if (!imageUrl) { const imgs = JSON.parse(order.product?.images || "[]"); imageUrl = imgs[0] || null; } } catch {}
       setOrderItems([{
         productId: order.productId,
         productName: order.product?.name || "منتج",

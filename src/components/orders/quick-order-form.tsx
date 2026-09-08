@@ -58,7 +58,7 @@ export function QuickOrderForm({ open, onClose, onOrderCreated }: QuickOrderForm
         const list = Array.isArray(data) ? data : (data.products || []);
         setProducts(list.map((p: any) => {
           let imageUrl = null;
-          try { const imgs = JSON.parse(p.images || "[]"); imageUrl = imgs[0] || null; } catch {}
+          try { imageUrl = p.thumbnail || null; if (!imageUrl) { const imgs = JSON.parse(p.images || "[]"); imageUrl = imgs[0] || null; } } catch {}
           return { id: p.id, name: p.name, price: p.price, purchasePrice: p.purchasePrice || 0, imageUrl };
         }));
       })
