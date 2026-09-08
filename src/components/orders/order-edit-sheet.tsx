@@ -83,8 +83,8 @@ export function OrderEditSheet({ order, open, onClose, onSave }: OrderEditSheetP
     if (!order || !open) return;
     setSelectedOfferId(order.offerId || null);
     setQuantity(order.quantity);
-    setSelectedColorId((order as any).colorId || null);
-    setSelectedSizeId((order as any).sizeId || null);
+    setSelectedColorId((order as any).orderItems?.[0]?.colorId || (order as any).colorId || null);
+    setSelectedSizeId((order as any).orderItems?.[0]?.sizeId || (order as any).sizeId || null);
     if (order.productId) {
       fetch(`/api/products/${order.productId}`)
         .then((r) => r.json())
@@ -327,7 +327,7 @@ export function OrderEditSheet({ order, open, onClose, onSave }: OrderEditSheetP
           colorId: selectedColorId,
           sizeId: selectedSizeId,
           productPrice: primaryItem?.productPrice || order.productPrice,
-          items: orderItems.length > 1 ? orderItems.map((i) => ({
+          items: orderItems.length > 0 ? orderItems.map((i) => ({
             productId: i.productId,
             quantity: i.quantity,
             productPrice: i.productPrice,
