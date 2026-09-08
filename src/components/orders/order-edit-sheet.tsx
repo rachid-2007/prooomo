@@ -366,7 +366,7 @@ export function OrderEditSheet({ order, open, onClose, onSave }: OrderEditSheetP
           </div>
 
           {/* Form */}
-          <div className="overflow-y-auto max-h-[calc(85vh-70px)] px-5 py-4 space-y-4">
+          <div className="overflow-y-auto max-h-[calc(85vh-175px)] px-5 py-4 space-y-4">
             {/* Name & Phone */}
             <div className="grid grid-cols-2 gap-3">
               <input
