@@ -86,6 +86,9 @@ export default function OrdersPage() {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [remarksResult, setRemarksResult] = useState<{ newRemarks: number; details: { tracking: string; count: number }[] } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("orders");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const listTopRef = useRef<HTMLDivElement>(null);
   const [abandonedOrders, setAbandonedOrders] = useState<OrderWithRelations[]>([]);
   const [loadingAbandoned, setLoadingAbandoned] = useState(false);
   const [allProducts, setAllProducts] = useState<{ id: string; name: string; image: string | null }[]>([]);
@@ -146,6 +149,11 @@ export default function OrdersPage() {
   useEffect(() => {
     if (viewMode === "abandoned") loadAbandoned();
   }, [viewMode, loadAbandoned]);
+
+  // Reset to first page whenever filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, search, timeFilter, dateFrom, dateTo, productFilter, viewMode, pageSize]);
 
   const getStatusCount = (status: StatusKey) => timeFilteredOrders.filter((o) => o.status === status).length;
 
@@ -624,6 +632,17 @@ export default function OrdersPage() {
       (order.deliveryReference && order.deliveryReference.toLowerCase().includes(search.toLowerCase()))
     );
   });
+
+  // Client-side pagination (render only one page of cards to keep the UI fast)
+  const currentList = viewMode === "orders" ? filteredOrders : filteredAbandonedOrders;
+  const totalPages = Math.max(1, Math.ceil(currentList.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedOrders = currentList.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const goToPage = (p: number) => {
+    setPage(Math.min(Math.max(1, p), totalPages));
+    listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Smart filters
   const activeStatuses = useMemo(() => {
@@ -1143,8 +1162,9 @@ export default function OrdersPage() {
                   <p className="text-sm text-muted-foreground/60 mt-1">لم يتم العثور على طلبات تطابق الفلتر</p>
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  {(viewMode === "orders" ? filteredOrders : filteredAbandonedOrders).map((order) => {
+                <>
+                <div ref={listTopRef} className="space-y-2.5 scroll-mt-32">
+                  {pagedOrders.map((order) => {
                     return (
                       <div key={order.id} className={cn(selectMode && "flex items-start gap-2", !selectMode && "relative")}>
                         {selectMode && (
@@ -1180,6 +1200,42 @@ export default function OrdersPage() {
                     );
                   })}
                 </div>
+
+                {/* Pagination bar */}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => goToPage(safePage - 1)}
+                      disabled={safePage <= 1}
+                      className="h-9 px-3 rounded-xl border border-border bg-card text-xs font-bold disabled:opacity-40 hover:bg-muted transition-colors"
+                    >
+                      السابق
+                    </button>
+                    <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
+                      {safePage} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => goToPage(safePage + 1)}
+                      disabled={safePage >= totalPages}
+                      className="h-9 px-3 rounded-xl border border-border bg-card text-xs font-bold disabled:opacity-40 hover:bg-muted transition-colors"
+                    >
+                      التالي
+                    </button>
+                  </div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                    <span className="hidden sm:inline">في الصفحة</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => setPageSize(parseInt(e.target.value))}
+                      className="h-9 px-2 rounded-xl border border-border bg-card text-xs font-black focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      {[5, 10, 20, 50, 100].map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                </>
               )}
             </>
           ) : null}
