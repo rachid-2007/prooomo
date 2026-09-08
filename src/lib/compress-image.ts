@@ -1,5 +1,22 @@
 import sharp from "sharp";
 
+// Compress a single data-URL image to webp (800px, q80). Used for color/variant images.
+export async function compressDataUrl(img: string, size = 800): Promise<string> {
+  if (!img || !img.startsWith("data:image/")) return img;
+  try {
+    const matches = img.match(/^data:image\/\w+;base64,(.+)$/);
+    if (!matches) return img;
+    const buffer = Buffer.from(matches[1], "base64");
+    const out = await sharp(buffer)
+      .resize(size, size, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+    return `data:image/webp;base64,${out.toString("base64")}`;
+  } catch {
+    return img;
+  }
+}
+
 export async function compressImages(imagesJson: string): Promise<{ images: string; thumbnail: string }> {
   let images: string[];
   try {

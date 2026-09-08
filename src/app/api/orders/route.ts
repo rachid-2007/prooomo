@@ -112,7 +112,7 @@ export async function GET(request: Request) {
                 select: { id: true, name: true, thumbnail: true },
               },
               color: {
-                select: { id: true, name: true, image: true, hex: true },
+                select: { id: true, name: true, hex: true },
               },
               size: {
                 select: { id: true, name: true },

@@ -18,7 +18,7 @@ export async function GET(
         variant: true,
         wilaya: true,
         baladya: true,
-        orderItems: { include: { product: true, color: { select: { id: true, name: true, image: true } }, size: { select: { id: true, name: true } } } },
+        orderItems: { include: { product: true, color: { select: { id: true, name: true, hex: true } }, size: { select: { id: true, name: true } } } },
         statusHistory: {
           orderBy: { createdAt: "desc" },
         },
@@ -106,7 +106,7 @@ export async function PATCH(
         variant: true,
         wilaya: true,
         baladya: true,
-        orderItems: { include: { product: true, color: { select: { id: true, name: true, image: true } }, size: { select: { id: true, name: true } } } },
+        orderItems: { include: { product: true, color: { select: { id: true, name: true, hex: true } }, size: { select: { id: true, name: true } } } },
         statusHistory: {
           orderBy: { createdAt: "desc" },
         },

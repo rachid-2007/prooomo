@@ -32,17 +32,21 @@ export async function POST(
     await prisma.productColor.deleteMany({ where: { productId: id } });
 
     if (colors.length > 0) {
-      await prisma.productColor.createMany({
-        data: colors.map((c: { name: string; image?: string; hex?: string; stock?: number; sortOrder?: number; isActive?: boolean }, i: number) => ({
+      const { compressDataUrl } = await import("@/lib/compress-image");
+      const data = [];
+      for (let i = 0; i < colors.length; i++) {
+        const c: { name: string; image?: string; hex?: string; stock?: number; sortOrder?: number; isActive?: boolean } = colors[i];
+        data.push({
           productId: id,
           name: c.name,
-          image: c.image || "",
+          image: c.image ? await compressDataUrl(c.image) : "",
           hex: c.hex || "",
           stock: c.stock || 0,
           sortOrder: c.sortOrder ?? i,
           isActive: c.isActive ?? true,
-        })),
-      });
+        });
+      }
+      await prisma.productColor.createMany({ data });
     }
 
     return NextResponse.json({ success: true });
