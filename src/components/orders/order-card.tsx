@@ -265,7 +265,7 @@ export function OrderCard({ order, onView, onEdit, onDelete, onStatusChange, onR
                 {order.orderItems && order.orderItems.length > 1 ? (
                   <>
                     <p className="text-[10px] text-muted-foreground">{order.orderItems.length} منتجات</p>
-                    <p className="text-xs font-bold truncate">{order.orderItems.map((i: any) => {
+                    <p className="text-xs font-bold line-clamp-2">{order.orderItems.map((i: any) => {
                       let name = i.product?.name || "";
                       if (i.color?.name) name += ` (${i.color.name})`;
                       if (i.size?.name) name += ` [${i.size.name}]`;
@@ -273,7 +273,7 @@ export function OrderCard({ order, onView, onEdit, onDelete, onStatusChange, onR
                     }).join(" + ")}</p>
                   </>
                 ) : (
-                  <p className="text-xs font-bold truncate">
+                  <p className="text-xs font-bold line-clamp-2">
                     x{order.quantity} {order.product?.name}
                     {(() => {
                       const firstItem = (order as any).orderItems?.[0];
