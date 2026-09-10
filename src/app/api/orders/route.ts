@@ -261,6 +261,76 @@ export async function POST(request: Request) {
       }
     }
 
+    // Server-side pricing: never trust client prices (bots send shippingPrice: 0).
+    // Admin quick-orders keep their manual prices.
+    let finalProductPrice = productPrice;
+    let finalShippingPrice = shippingPrice || 0;
+    let finalQuantity = quantity || 1;
+    let finalVariantId = variantId || null;
+    let finalOfferId = offerId || null;
+    let finalColorId = colorId || null;
+    let finalSizeId = sizeId || null;
+
+    if (!isAdminOrder) {
+      const dbProduct = await prisma.product.findUnique({
+        where: { id: productId },
+        select: {
+          price: true,
+          isActive: true,
+          offers: { where: { isActive: true }, select: { id: true, quantity: true, price: true } },
+          variants: { select: { id: true, price: true } },
+          colors: { where: { isActive: true }, select: { id: true } },
+          sizes: { where: { isActive: true }, select: { id: true } },
+        },
+      });
+      if (!dbProduct || !dbProduct.isActive) {
+        return NextResponse.json({ error: "المنتج غير متوفر" }, { status: 400 });
+      }
+      if (offerId) {
+        const offer = dbProduct.offers.find((o) => o.id === offerId);
+        if (!offer || offer.quantity < 1) {
+          return NextResponse.json({ error: "العرض غير متوفر" }, { status: 400 });
+        }
+        finalQuantity = offer.quantity;
+        finalProductPrice = offer.price / offer.quantity;
+      } else {
+        if (variantId) {
+          const variant = dbProduct.variants.find((v) => v.id === variantId);
+          if (!variant) {
+            return NextResponse.json({ error: "الخيار غير متوفر" }, { status: 400 });
+          }
+          finalProductPrice = variant.price;
+        } else {
+          finalProductPrice = dbProduct.price;
+        }
+        const q = parseInt(String(quantity)) || 1;
+        finalQuantity = Math.min(Math.max(q, 1), 100);
+      }
+      if (finalColorId && !dbProduct.colors.some((c) => c.id === finalColorId)) finalColorId = null;
+      if (finalSizeId && !dbProduct.sizes.some((s) => s.id === finalSizeId)) finalSizeId = null;
+
+      // Shipping price from settings by wilaya + method (office = office address, no baladya)
+      const isOfficeOrder = !!customerAddress && !baladyaId;
+      let wilayaCode: string | null = null;
+      if (wilayaId && String(wilayaId).length < 20 && !String(wilayaId).startsWith("c")) {
+        wilayaCode = String(wilayaId);
+      } else if (wilayaId) {
+        const wrec = await prisma.wilaya.findUnique({ where: { id: wilayaId }, select: { code: true } });
+        wilayaCode = wrec?.code || null;
+      }
+      let ship = { home: 750, office: 400 };
+      try {
+        const s = await prisma.settings.findUnique({ where: { key: "shipping_prices" } });
+        if (s) {
+          const all = JSON.parse(s.value);
+          if (wilayaCode && all[wilayaCode]?.home != null) {
+            ship = { home: Number(all[wilayaCode].home) || 0, office: Number(all[wilayaCode].office) || 0 };
+          }
+        }
+      } catch { /* keep defaults */ }
+      finalShippingPrice = isOfficeOrder ? ship.office : ship.home;
+    }
+
     // Get next order number - find the highest existing number to avoid collisions
     const lastOrders = await prisma.$queryRaw<[{ max_num: bigint }]>`
       SELECT COALESCE(MAX(CAST(SUBSTRING("orderNumber" FROM 6) AS INTEGER)), 0) as max_num
@@ -269,7 +339,7 @@ export async function POST(request: Request) {
     `;
     const lastNum = Number(lastOrders[0]?.max_num || 0);
     const orderNumber = `MEGA-${String(lastNum + 1).padStart(6, "0")}`;
-    const totalPrice = productPrice * (quantity || 1) + (shippingPrice || 0);
+    const totalPrice = finalProductPrice * finalQuantity + finalShippingPrice;
 
     // Resolve wilayaId - if it looks like a code (short string, not cuid), find the actual ID
     let resolvedWilayaId = wilayaId;
@@ -287,16 +357,16 @@ export async function POST(request: Request) {
       data: {
         orderNumber,
         productId,
-        variantId: variantId || null,
-        offerId: offerId || null,
+        variantId: finalVariantId,
+        offerId: finalOfferId,
         customerName,
         customerPhone: normalizePhone(customerPhone),
         customerAddress: customerAddress || null,
         wilayaId: resolvedWilayaId,
         baladyaId: baladyaId || null,
-        quantity: quantity || 1,
-        productPrice,
-        shippingPrice: shippingPrice || 0,
+        quantity: finalQuantity,
+        productPrice: finalProductPrice,
+        shippingPrice: finalShippingPrice,
         totalPrice,
         notes: notes || null,
         ipAddress: clientIp,
@@ -311,7 +381,7 @@ export async function POST(request: Request) {
       },
       include: {
         product: {
-          select: { id: true, name: true, slug: true, price: true, images: true },
+          select: { id: true, name: true, slug: true, price: true, thumbnail: true },
         },
         variant: {
           select: { id: true, name: true, price: true },
@@ -336,12 +406,12 @@ export async function POST(request: Request) {
       data: {
         orderId: order.id,
         productId,
-        quantity: quantity || 1,
-        productPrice,
+        quantity: finalQuantity,
+        productPrice: finalProductPrice,
         purchasePrice: 0,
-        offerId: offerId || null,
-        colorId: colorId || null,
-        sizeId: sizeId || null,
+        offerId: finalOfferId,
+        colorId: finalColorId,
+        sizeId: finalSizeId,
       },
     });
 
@@ -354,7 +424,7 @@ export async function POST(request: Request) {
         productName: order.product?.name || "غير معروف",
         quantity: order.quantity,
         totalPrice,
-        shippingMethod: order.customerAddress && !baladyaId ? "home" : "office",
+        shippingMethod: order.customerAddress && !baladyaId ? "office" : "home",
         wilaya: order.wilaya?.name || String(wilayaId),
         baladya: order.baladya?.arabicName,
         officeName: order.customerAddress && !baladyaId ? null : order.customerAddress,
