@@ -102,10 +102,12 @@ export default async function StoreProductPage({ params }: Props) {
     imageCount,
   };
 
+  const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY || "";
+
   return (
     <>
       <link rel="preload" as="image" href={imgUrl} fetchPriority="high" />
-      <StoreClient productJson={JSON.stringify(productMeta)} colorsJson={JSON.stringify(colors)} />
+      <StoreClient productJson={JSON.stringify(productMeta)} colorsJson={JSON.stringify(colors)} turnstileSiteKey={turnstileSiteKey} />
     </>
   );
 }

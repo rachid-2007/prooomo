@@ -1,8 +1,29 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { sendTelegramMessage, formatOrderNotification } from "@/lib/telegram";
-import { sendNewOrderPush } from "@/lib/push";
+import { sendNewOrderPush, sendPushBroadcast } from "@/lib/push";
 import { getClientIp, findBlock, checkRateLimit, normalizePhone } from "@/lib/fraud";
+
+const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const WAVE_THRESHOLD = 20;
+const WAVE_WINDOW_MIN = 10;
+
+async function verifyTurnstile(token: string | null, ip: string | null): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY || "";
+  if (!secret) return true; // not configured yet -> allow (setup pending)
+  if (!token) return false;
+  try {
+    const res = await fetch(TURNSTILE_VERIFY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ secret, response: token, remoteip: ip || "" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    return data.success === true;
+  } catch {
+    return false;
+  }
+}
 
 function getDateRange(time: string, dateFrom?: string, dateTo?: string): { gte?: Date; lte?: Date } | undefined {
   const now = new Date();
@@ -173,6 +194,7 @@ export async function POST(request: Request) {
       notes,
       deviceId,
       adminCreated,
+      turnstileToken,
     } = body;
 
     const clientIp = getClientIp(request);
@@ -195,6 +217,34 @@ export async function POST(request: Request) {
     }
 
     if (!isAdminOrder) {
+      // Emergency kill-switch (Settings > Security)
+      try {
+        const paused = await prisma.settings.findUnique({ where: { key: "orders_paused" } });
+        if (paused && paused.value === "1") {
+          return NextResponse.json(
+            { error: "استقبال الطلبات متوقف مؤقتا، حاول لاحقا" },
+            { status: 503 }
+          );
+        }
+      } catch { /* ignore - fail open */ }
+
+      // Anti-bot: must come from a real browser (blocks raw scripts like python/curl)
+      if (!userAgent || !userAgent.toLowerCase().includes("mozilla")) {
+        return NextResponse.json(
+          { error: "تعذر إتمام الطلب، يرجى الطلب من المتصفح" },
+          { status: 403 }
+        );
+      }
+
+      // Anti-bot: Cloudflare Turnstile (enforced once keys are configured)
+      const human = await verifyTurnstile(turnstileToken || null, clientIp);
+      if (!human) {
+        return NextResponse.json(
+          { error: "فشل التحقق الأمني، أعد تحميل الصفحة وحاول مجددا" },
+          { status: 403 }
+        );
+      }
+
       // Anti-fake: blocked phone / IP / device
       const block = await findBlock(customerPhone, clientIp, deviceId || null);
       if (block) {
@@ -333,6 +383,19 @@ export async function POST(request: Request) {
       }
     } catch (e) {
       console.error("Push notification failed:", e);
+    }
+
+    // Attack wave alarm: unusually many orders in a short window
+    try {
+      const since = new Date(Date.now() - WAVE_WINDOW_MIN * 60 * 1000);
+      const recentCount = await prisma.order.count({ where: { createdAt: { gte: since } } });
+      if (recentCount >= WAVE_THRESHOLD) {
+        const msg = `تنبيه: موجة طلبات مشبوهة - ${recentCount} طلب في آخر ${WAVE_WINDOW_MIN} دقائق. راجع الطلبات أو أوقف الاستقبال من الإعدادات.`;
+        await sendPushBroadcast("تنبيه أمني", msg, "/orders").catch(() => {});
+        await sendTelegramMessage(msg).catch(() => {});
+      }
+    } catch (e) {
+      console.error("Wave alarm failed:", e);
     }
 
     return NextResponse.json(order, { status: 201 });

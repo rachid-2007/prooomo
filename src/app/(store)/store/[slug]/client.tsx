@@ -41,7 +41,7 @@ interface Product {
 
 const AVAILABLE_WILAYAS = WILAYAS_DATA.filter((w) => !UNAVAILABLE_WILAYAS.includes(w.code));
 
-export default function StoreClient({ productJson, colorsJson }: { productJson: string; colorsJson: string }) {
+export default function StoreClient({ productJson, colorsJson, turnstileSiteKey = "" }: { productJson: string; colorsJson: string; turnstileSiteKey?: string }) {
   const { offices: OFFICES_DATA } = useOffices();
   const [product, setProduct] = useState<Product | null>(() => {
     try { return JSON.parse(productJson); } catch { return null; }
@@ -81,6 +81,50 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
   const [dbOffices, setDbOffices] = useState<Record<string, string[]>>({});
   const abandonedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const abandonedSentRef = useRef(false);
+
+  // Cloudflare Turnstile (anti-bot) state
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileBoxRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!turnstileSiteKey) return;
+    let cancelled = false;
+    const renderWidget = () => {
+      const api = (window as any).turnstile;
+      if (!api || !turnstileBoxRef.current || turnstileWidgetId.current || cancelled) return;
+      try {
+        turnstileWidgetId.current = api.render(turnstileBoxRef.current, {
+          sitekey: turnstileSiteKey,
+          callback: (token: string) => setTurnstileToken(token),
+          "expired-callback": () => setTurnstileToken(null),
+          "error-callback": () => setTurnstileToken(null),
+          theme: "light",
+        });
+      } catch { /* ignore */ }
+    };
+    if ((window as any).turnstile) {
+      renderWidget();
+    } else {
+      const s = document.createElement("script");
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      s.async = true;
+      s.defer = true;
+      s.onload = renderWidget;
+      document.body.appendChild(s);
+    }
+    return () => { cancelled = true; };
+  }, [turnstileSiteKey]);
+
+  const resetTurnstile = () => {
+    try {
+      const api = (window as any).turnstile;
+      if (api && turnstileWidgetId.current) {
+        api.reset(turnstileWidgetId.current);
+        setTurnstileToken(null);
+      }
+    } catch { /* ignore */ }
+  };
 
   // Stable device fingerprint for anti-fake tracking (phone/IP/device)
   const getDeviceId = () => {
@@ -338,6 +382,10 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product || !wilaya) return;
+    if (turnstileSiteKey && !turnstileToken) {
+      alert("يرجى إتمام التحقق الأمني أولا");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -362,16 +410,19 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
           colorId: selectedColor || null,
           sizeId: selectedSize || null,
           deviceId: getDeviceId(),
+          turnstileToken: turnstileToken || null,
         }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        resetTurnstile();
         throw new Error(err.error || "فشل إنشاء الطلب");
       }
 
       setSubmitted(true);
       setShowThankYou(true);
+      resetTurnstile();
       abandonedSentRef.current = true;
       if (abandonedTimerRef.current) clearTimeout(abandonedTimerRef.current);
 
@@ -754,6 +805,13 @@ export default function StoreClient({ productJson, colorsJson }: { productJson: 
                     <span className="font-bold text-lg sm:text-xl whitespace-nowrap" style={{ color: pc }}>{totalPrice.toLocaleString()} دج</span>
                   </div>
                 </div>
+
+                {/* Anti-bot check */}
+                {turnstileSiteKey ? (
+                  <div className="flex justify-center py-1">
+                    <div ref={turnstileBoxRef} />
+                  </div>
+                ) : null}
 
                 {/* Submit + Quantity Row */}
                 <div className="flex items-center gap-2">

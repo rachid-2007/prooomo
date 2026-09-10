@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, unauthorized } from "../push/auth";
 
 // GET /api/settings?key=xxx or GET /api/settings (all)
 export async function GET(request: Request) {
@@ -22,9 +23,11 @@ export async function GET(request: Request) {
   }
 }
 
-// PUT /api/settings  { key, value }
+// PUT /api/settings  { key, value } (admin only)
 export async function PUT(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const body = await request.json();
     const { key, value } = body;
 
@@ -49,6 +52,8 @@ export async function PUT(request: Request) {
 // POST /api/settings/batch  { settings: [{ key, value }] }
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const body = await request.json();
     const { settings } = body;
 

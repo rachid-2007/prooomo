@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Truck, Store, Palette, Package, BarChart3, Settings, Users, Bell, CreditCard } from "lucide-react";
+import { Truck, Store, Palette, Package, BarChart3, Settings, Users, Bell, CreditCard, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
 const settingsItems = [
@@ -52,9 +52,19 @@ const settingsItems = [
     title: "Facebook Pixel + CAPI",
     description: "تتبع الأحداث والتحويلات",
     color: "from-indigo-500 to-blue-600",
-    bg: "bg-indigo-50 dark:bg-indigo-950/30",
+    bg: "bg-indigo-50 dark:bg-blue-950/30",
     iconColor: "text-indigo-600 dark:text-indigo-400",
     border: "border-indigo-100 dark:border-indigo-900/50",
+  },
+  {
+    href: "/settings/security",
+    icon: ShieldAlert,
+    title: "الحماية من البوتات",
+    description: "إيقاف الطوارئ، Turnstile، قائمة الحظر",
+    color: "from-red-500 to-red-600",
+    bg: "bg-red-50 dark:bg-red-950/30",
+    iconColor: "text-red-600 dark:text-red-400",
+    border: "border-red-100 dark:border-red-900/50",
   },
 ];
 

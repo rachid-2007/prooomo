@@ -38,6 +38,39 @@ export function getVapidPublicKey(): string | null {
   return pub || null;
 }
 
+// Generic broadcast to all subscribed devices (e.g. attack alarms).
+export async function sendPushBroadcast(title: string, body: string, url: string): Promise<{ sent: number; total: number }> {
+  if (!setupVapid()) return { sent: 0, total: 0 };
+
+  const subs = await prisma.pushSubscription.findMany({
+    select: { id: true, endpoint: true, p256dh: true, auth: true },
+  });
+
+  const payload = JSON.stringify({ type: "alert", title, body, url });
+
+  let sent = 0;
+  await Promise.all(
+    subs.map(async (s) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          payload
+        );
+        sent++;
+      } catch (err: unknown) {
+        const status = (err as { statusCode?: number })?.statusCode;
+        if (status === 404 || status === 410) {
+          try {
+            await prisma.pushSubscription.delete({ where: { id: s.id } });
+          } catch { /* ignore */ }
+        }
+      }
+    })
+  );
+
+  return { sent, total: subs.length };
+}
+
 // Sends a push notification to all subscribed devices.
 // Returns the number of devices successfully notified.
 // Expired/invalid subscriptions (410/404) are removed automatically.
