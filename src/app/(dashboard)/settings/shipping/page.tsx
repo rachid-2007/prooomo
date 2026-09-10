@@ -27,6 +27,7 @@ export default function ShippingSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<"success" | "error" | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -78,15 +79,19 @@ export default function ShippingSettingsPage() {
     }
     setTesting(true);
     setTestResult(null);
+    setTestError(null);
     try {
       const res = await fetch("/api/delivery/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trackingNumbers: ["TEST"] }),
       });
+      const data = await res.json().catch(() => ({}));
       setTestResult(res.ok ? "success" : "error");
+      if (!res.ok) setTestError(data.error || "فشل الاتصال");
     } catch {
       setTestResult("error");
+      setTestError("تعذر الوصول للسيرفر");
     } finally {
       setTesting(false);
     }
@@ -204,9 +209,9 @@ export default function ShippingSettingsPage() {
             </div>
           )}
           {testResult === "error" && (
-            <div className="flex items-center gap-1 text-destructive text-sm">
-              <XCircle className="h-4 w-4" />
-              فشل الاتصال
+            <div className="flex items-center gap-1 text-destructive text-sm" title={testError || undefined}>
+              <XCircle className="h-4 w-4 flex-shrink-0" />
+              {testError || "فشل الاتصال"}
             </div>
           )}
         </div>
