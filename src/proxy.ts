@@ -46,19 +46,23 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for session cookie
+  // Check for session cookie + verify its signature.
+  // Tokens signed with an old/rotated secret are dead -> force logout.
   const sessionCookie = request.cookies.get("auth-token");
 
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  const session = await getRole(request);
+  if (!session) {
+    const res = NextResponse.redirect(new URL("/login", request.url));
+    res.cookies.set("auth-token", "", { maxAge: 0, path: "/" });
+    return res;
+  }
+
   // Admin-only pages: workers are redirected to their own workspace
   if (ADMIN_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    const session = await getRole(request);
-    if (!session) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
     if (session.role !== "ADMIN") {
       const target = session.username ? `/worker/${session.username}` : "/login";
       return NextResponse.redirect(new URL(target, request.url));
