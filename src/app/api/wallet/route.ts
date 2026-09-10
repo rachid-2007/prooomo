@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../push/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const [deliveredOrders, readyOrders, paidOrders, abdDeliveredOrders, abdReadyOrders, abdPaidOrders, products] = await Promise.all([
       prisma.order.findMany({ where: { status: "DELIVERED" }, select: { productPrice: true, quantity: true, productId: true } }),
       prisma.order.findMany({ where: { status: "READY_FOR_PAYMENT" }, select: { productPrice: true, quantity: true, productId: true } }),

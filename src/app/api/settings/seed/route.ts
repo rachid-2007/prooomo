@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
 const ORIGINAL_PRICES: Record<string, { home: number; office: number }> = {
   "01": { home: 1000, office: 500 },
@@ -59,8 +60,10 @@ const ORIGINAL_PRICES: Record<string, { home: number; office: number }> = {
   "58": { home: 1000, office: 450 },
 };
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     await prisma.settings.upsert({
       where: { key: "shipping_prices" },
       update: { value: JSON.stringify(ORIGINAL_PRICES) },

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorized } from "../../push/auth";
 
 const MANUAL_STATUSES = [
   "NEW", "CONFIRMED",
@@ -15,6 +16,8 @@ const RETURN_STATUSES = [
 
 export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const { searchParams } = new URL(request.url);
     const phone = searchParams.get("phone");
     const excludeOrderId = searchParams.get("excludeOrderId");

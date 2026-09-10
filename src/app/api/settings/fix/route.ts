@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const products = await prisma.product.findMany({ select: { id: true, name: true, slug: true } });
     let fixed = 0;
     const results: { id: string; name: string; oldSlug: string; newSlug: string }[] = [];
@@ -43,8 +46,10 @@ export async function POST() {
 }
 
 // Assign FIFO purchase prices to all existing orders that have purchasePrice=0
-export async function PUT() {
+export async function PUT(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const orders = await prisma.order.findMany({
       where: {
         purchasePrice: 0,

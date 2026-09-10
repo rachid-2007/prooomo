@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const colorsSetting = await prisma.settings.findUnique({
       where: { key: "form_colors" },
     });
@@ -33,6 +36,8 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const colors = await request.json();
     await prisma.settings.upsert({
       where: { key: "form_colors" },

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, unauthorized } from "../push/auth";
 
 export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "all";
     const from = searchParams.get("from");
@@ -48,6 +51,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const body = await request.json();
     const { description, amount, category, productId, note, date } = body;
 

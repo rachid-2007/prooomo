@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../../push/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const { id } = await params;
     const colors = await prisma.productColor.findMany({
       where: { productId: id },
@@ -22,6 +25,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
     const { colors } = await request.json();
 

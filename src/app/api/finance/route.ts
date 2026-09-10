@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../push/auth";
 
 const SALES_STATUSES = ["DELIVERED", "READY_FOR_PAYMENT", "PAID"];
 
 export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "all";
     const customMonth = searchParams.get("customMonth");

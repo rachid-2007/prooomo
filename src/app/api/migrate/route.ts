@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../push/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     // Add username column if it doesn't exist
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "username" TEXT;
@@ -33,10 +36,10 @@ export async function GET() {
     } catch {}
 
     // Update admin user with username if missing
-    const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
-    if (admin && !(admin as any).username) {
+    const firstAdmin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+    if (firstAdmin && !(firstAdmin as any).username) {
       await prisma.user.update({
-        where: { id: admin.id },
+        where: { id: firstAdmin.id },
         data: { username: "admin" } as any,
       });
     }
@@ -47,6 +50,6 @@ export async function GET() {
   }
 }
 
-export async function POST() {
-  return GET();
+export async function POST(request: Request) {
+  return GET(request);
 }

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { OFFICES_DATA } from "@/lib/constants";
+import { requireAdmin, unauthorized } from "../push/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const merged = { ...OFFICES_DATA };
 
     try {

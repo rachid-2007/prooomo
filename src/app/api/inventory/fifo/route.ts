@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
 // Assign FIFO purchase price to an order
 async function assignFifoPrice(orderId: string) {
@@ -82,6 +83,8 @@ async function restoreStock(orderId: string) {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const body = await request.json();
     const { action, orderId } = body;
 

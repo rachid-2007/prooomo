@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
 const DAY_NAMES = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
@@ -42,6 +43,8 @@ function getPeriodRange(period: string, customMonth?: string): { start: Date; en
 
 export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "currentMonth";
     const customMonth = searchParams.get("customMonth") || undefined;

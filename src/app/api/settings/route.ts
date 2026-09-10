@@ -2,19 +2,28 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin, unauthorized } from "../push/auth";
 
+// Settings safe for the public storefront. Secrets (API tokens, pixel secrets,
+// pause flag internals) are admin-only.
+const PUBLIC_SETTING_KEYS = ["shipping_prices", "offices", "form_colors"];
+
 // GET /api/settings?key=xxx or GET /api/settings (all)
 export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
     const { searchParams } = new URL(request.url);
     const key = searchParams.get("key");
 
     if (key) {
+      if (!admin && !PUBLIC_SETTING_KEYS.includes(key)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       const setting = await prisma.settings.findUnique({ where: { key } });
       return NextResponse.json(setting);
     }
 
     const settings = await prisma.settings.findMany();
-    const response = NextResponse.json(settings);
+    const visible = admin ? settings : settings.filter((s) => PUBLIC_SETTING_KEYS.includes(s.key));
+    const response = NextResponse.json(visible);
     response.headers.set("Cache-Control", "public, s-maxage=120, stale-while-revalidate=240");
     return response;
   } catch (error) {

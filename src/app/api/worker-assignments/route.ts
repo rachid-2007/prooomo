@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../push/auth";
 import { jwtVerify } from "jose";
 
 const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret-key");
@@ -19,6 +20,8 @@ async function getAuthUser(request: Request) {
 // Get assigned products for a worker
 export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const user = await getAuthUser(request);
     if (!user || user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -45,6 +48,8 @@ export async function GET(request: Request) {
 // Assign/unassign products to worker
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const user = await getAuthUser(request);
     if (!user || user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

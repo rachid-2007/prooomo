@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../push/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const isPostgres = (process.env.DATABASE_URL || "").startsWith("postgresql");
 
     if (isPostgres) {
@@ -24,6 +27,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const body = await request.json();
     const { orderIds, note } = body;
 
@@ -109,6 +114,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });

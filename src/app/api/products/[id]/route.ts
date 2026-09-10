@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { compressImages } from "@/lib/compress-image";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const { id } = await params;
     const product = await prisma.product.findUnique({
       where: { id },
@@ -45,6 +48,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
     const body = await request.json();
     const {
@@ -119,6 +124,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
     await prisma.product.delete({
       where: { id },

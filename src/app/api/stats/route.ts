@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../push/auth";
 
 function calcWorkingMinutes(start: Date, end: Date): number {
   let total = 0;
@@ -208,6 +209,8 @@ function buildStats(orders: OrderRow[], abandonedOrders: AbandonedRow[], expense
 
 export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { searchParams } = new URL(request.url);
     const time = searchParams.get("time") || "all";
     const type = searchParams.get("type") || "all";

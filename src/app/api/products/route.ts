@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { compressImages } from "@/lib/compress-image";
 import { jwtVerify } from "jose";
+import { requireAdmin, requireUser, unauthorized } from "../push/auth";
 
 const authSecret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret-key");
 
@@ -16,6 +17,8 @@ async function getAuthFromToken(request: Request): Promise<{ id: string | null; 
 
 export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
     const slug = searchParams.get("slug");
@@ -105,6 +108,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const body = await request.json();
     const {
       name,

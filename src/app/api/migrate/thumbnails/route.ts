@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 import sharp from "sharp";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const products = await prisma.product.findMany({
       select: { id: true, name: true, images: true, thumbnail: true },
     });

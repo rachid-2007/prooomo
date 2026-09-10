@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
 const NAMES = [
   "أحمد بن محمد", "فاطمة الزهراء", "محمد بن علي", "خديجة بنت أحمد",
@@ -56,6 +57,8 @@ function randomDate(daysBack: number): Date {
 
 export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const body = await request.json().catch(() => ({}));
     const count = Math.min(body.count || 50, 200);
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorized } from "../../push/auth";
 
 export async function GET(
   request: Request,
@@ -7,6 +8,10 @@ export async function GET(
 ) {
   try {
     const { username } = await params;
+    const me = await requireUser(request);
+    if (!me || (me.role !== "ADMIN" && !(me.role === "WORKER" && me.username === username))) {
+      return unauthorized();
+    }
 
     const worker = await prisma.user.findUnique({
       where: { username },

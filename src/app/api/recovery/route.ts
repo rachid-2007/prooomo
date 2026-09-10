@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../push/auth";
 
 const DELIVERY_STATUSES = ["SHIPPED", "IN_DELIVERY", "ON_HOLD"];
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const settingsRows = await prisma.settings.findMany({
       where: { key: { in: ["delivery_api_token", "delivery_api_url"] } },
     });

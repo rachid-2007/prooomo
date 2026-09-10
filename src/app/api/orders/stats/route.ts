@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
 function getDateRange(time: string, dateFrom?: string, dateTo?: string): { gte?: Date; lte?: Date } | undefined {
   const now = new Date();
@@ -39,6 +40,8 @@ const REVERT_STATUSES = ["CANCELLED", "FAKE", "NOT_ANSWERED_1", "NOT_ANSWERED_2"
 
 export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const { searchParams } = new URL(request.url);
     const time = searchParams.get("time") || "all";
     const dateFrom = searchParams.get("dateFrom") || undefined;

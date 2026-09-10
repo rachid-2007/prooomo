@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, requireUser, unauthorized } from "../../push/auth";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
     const account = await prisma.weeklyAccount.findUnique({
       where: { id },
@@ -24,6 +27,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
     const body = await request.json();
     const account = await prisma.weeklyAccount.update({
@@ -58,6 +63,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const { id } = await params;
     await prisma.weeklyAccount.delete({
       where: { id },

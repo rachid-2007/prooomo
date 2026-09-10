@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { normalizePhone } from '@/lib/fraud';
+import { requireUser, unauthorized } from '../../push/auth';
 
 function toOrderWithRelations(ao: any, productImageMap?: Map<string, string>) {
   const productImages = ao.productImages || "[]";
@@ -75,8 +76,10 @@ function toOrderWithRelations(ao: any, productImageMap?: Map<string, string>) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const abandonedOrders = await prisma.abandonedOrder.findMany({
       orderBy: { createdAt: 'desc' },
       take: 200,

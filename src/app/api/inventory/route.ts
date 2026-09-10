@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin, unauthorized } from "../push/auth";
 
 const RESERVED = ["CONFIRMED"];
 const IN_DELIVERY = ["SHIPPED", "IN_DELIVERY", "ON_HOLD"];
 const SALES = ["DELIVERED", "READY_FOR_PAYMENT", "PAID"];
 const RETURNING = ["CUSTOMER_REORDERED", "RETURN_TRANSFER", "RETURN_READY"];
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const admin = await requireAdmin(request);
+    if (!admin) return unauthorized();
     const products = await prisma.product.findMany({
       where: { isActive: true },
       select: { id: true, name: true, price: true, stock: true, initialStock: true },

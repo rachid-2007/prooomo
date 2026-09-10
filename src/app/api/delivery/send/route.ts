@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { requireUser, unauthorized } from "../../push/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireUser(request);
+    if (!user) return unauthorized();
     const { orderId } = await request.json();
 
     if (!orderId) {

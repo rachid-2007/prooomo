@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorized } from "../../push/auth";
 
 const RECOVERY_REMARK_LABELS: Record<string, string> = {
   client_injoignable: "عميل لا يتصل",
@@ -34,6 +35,8 @@ function detectRecoveryType(remarkText: string): string | null {
 
 export async function POST(req: NextRequest) {
   try {
+    const admin = await requireUser(req);
+    if (!admin) return unauthorized();
     const body = await req.json().catch(() => ({}));
     const singleTracking = body.tracking as string | undefined;
 
@@ -227,6 +230,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const user = await requireUser(req);
+    if (!user) return unauthorized();
     const tracking = req.nextUrl.searchParams.get("tracking");
     if (!tracking) {
       return NextResponse.json({ error: "missing tracking" }, { status: 400 });

@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser, unauthorized } from "../../../push/auth";
+
+async function requireSelfOrAdmin(request: Request, username: string) {
+  const user = await requireUser(request);
+  if (!user) return null;
+  if (user.role === "ADMIN") return user;
+  if (user.role === "WORKER" && user.username === username) return user;
+  return null;
+}
 
 function toAbandonedOrderWithRelations(ao: any) {
   let statusHistory: any[] = [];
@@ -74,6 +83,8 @@ export async function GET(
 ) {
   try {
     const { username } = await params;
+    const allowed = await requireSelfOrAdmin(request, username);
+    if (!allowed) return unauthorized();
 
     const worker = await prisma.user.findUnique({
       where: { username },
@@ -167,6 +178,8 @@ export async function PATCH(
 ) {
   try {
     const { username } = await params;
+    const allowed = await requireSelfOrAdmin(request, username);
+    if (!allowed) return unauthorized();
 
     const worker = await prisma.user.findUnique({
       where: { username },
