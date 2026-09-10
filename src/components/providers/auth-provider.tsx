@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 
 interface User {
   id: string;
@@ -23,12 +23,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const wasAuthenticated = useRef(false);
 
   const refreshUser = async () => {
     try {
       const res = await fetch("/api/auth/[...nextauth]?action=session");
       const data = await res.json();
-      setUser(data.user || null);
+      const u = data.user || null;
+      setUser(u);
+      if (u) {
+        wasAuthenticated.current = true;
+      } else if (wasAuthenticated.current && window.location.pathname !== "/login") {
+        // Session died (e.g. secret rotated) while the app was open -> force re-login
+        window.location.href = "/login";
+      }
     } catch {
       setUser(null);
     } finally {
@@ -38,6 +46,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshUser();
+    // Re-validate session when the tab regains focus + every 5 minutes
+    const onFocus = () => refreshUser();
+    window.addEventListener("focus", onFocus);
+    const id = setInterval(refreshUser, 5 * 60 * 1000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signIn = async (email: string, password: string) => {
