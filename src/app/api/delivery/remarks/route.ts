@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser, unauthorized } from "../../push/auth";
+import { deliveryHeaders } from "@/lib/delivery";
 
 const RECOVERY_REMARK_LABELS: Record<string, string> = {
   client_injoignable: "عميل لا يتصل",
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
         const url = `${apiUrl}/api/v1/get/maj?api_token=${encodeURIComponent(settings.delivery_api_token)}&tracking=${encodeURIComponent(t.tracking)}`;
         const res = await fetch(url, {
           method: "GET",
-          headers: { Accept: "application/json" },
+          headers: deliveryHeaders(),
         });
 
         if (!res.ok) continue;
@@ -254,7 +255,7 @@ export async function GET(req: NextRequest) {
 
     const res = await fetch(url, {
       method: "GET",
-      headers: { Accept: "application/json" },
+      headers: deliveryHeaders(),
     });
 
     if (!res.ok) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin, unauthorized } from "../../push/auth";
+import { deliveryHeaders } from "@/lib/delivery";
 
 export async function POST(request: NextRequest) {
   try {
@@ -119,10 +120,10 @@ export async function POST(request: NextRequest) {
 
     const res = await fetch(`${apiUrl}/api/v1/create/orders`, {
       method: "POST",
-      headers: {
+      headers: deliveryHeaders({
         "Content-Type": "application/json",
         Authorization: `Bearer ${settings.delivery_api_token}`,
-      },
+      }),
       body: JSON.stringify({ orders: ordersPayload }),
     });
 

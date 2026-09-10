@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin, unauthorized } from "../../push/auth";
+import { deliveryHeaders } from "@/lib/delivery";
 
 export async function POST(request: NextRequest) {
   const admin = await requireAdmin(request);
@@ -56,7 +57,7 @@ async function handleSync() {
       const batch = allTrackings.slice(i, i + BATCH_SIZE);
       const url = `${apiUrl}/api/v1/get/orders/status?api_token=${encodeURIComponent(settings.delivery_api_token)}&trackings=${encodeURIComponent(batch.join(","))}&status=all`;
 
-      const res = await fetch(url, { method: "GET" });
+      const res = await fetch(url, { method: "GET", headers: deliveryHeaders() });
       if (!res.ok) {
         return NextResponse.json({ error: `فشل المزامنة: ${res.status}` }, { status: 502 });
       }

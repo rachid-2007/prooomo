@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin, unauthorized } from "../../push/auth";
+import { deliveryHeaders } from "@/lib/delivery";
 
 // POST /api/delivery/track { trackingNumbers: string[] } (admin)
 // Real connectivity check against the shipping company API.
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     let res: Response;
     try {
-      res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+      res = await fetch(url, { method: "GET", headers: deliveryHeaders() });
     } catch {
       return NextResponse.json({ error: "تعذر الوصول لسيرفر شركة التوصيل" }, { status: 502 });
     }
