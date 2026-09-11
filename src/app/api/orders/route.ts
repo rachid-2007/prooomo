@@ -217,6 +217,15 @@ export async function POST(request: Request) {
     }
 
     if (!isAdminOrder) {
+      // Anti-bot: must come from a real browser (blocks raw scripts like python/curl).
+      // Checked FIRST so bot hits cost zero database queries.
+      if (!userAgent || !userAgent.toLowerCase().includes("mozilla")) {
+        return NextResponse.json(
+          { error: "تعذر إتمام الطلب، يرجى الطلب من المتصفح" },
+          { status: 403 }
+        );
+      }
+
       // Emergency kill-switch (Settings > Security)
       try {
         const paused = await prisma.settings.findUnique({ where: { key: "orders_paused" } });
@@ -227,14 +236,6 @@ export async function POST(request: Request) {
           );
         }
       } catch { /* ignore - fail open */ }
-
-      // Anti-bot: must come from a real browser (blocks raw scripts like python/curl)
-      if (!userAgent || !userAgent.toLowerCase().includes("mozilla")) {
-        return NextResponse.json(
-          { error: "تعذر إتمام الطلب، يرجى الطلب من المتصفح" },
-          { status: 403 }
-        );
-      }
 
       // Anti-bot: Cloudflare Turnstile (enforced once keys are configured)
       const human = await verifyTurnstile(turnstileToken || null, clientIp);

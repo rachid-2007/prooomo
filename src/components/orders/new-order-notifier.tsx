@@ -23,7 +23,7 @@ interface NewOrderToast {
   totalPrice: number;
 }
 
-const POLL_MS = 20000;
+const POLL_MS = 30000;
 const STORE_KEY = "new-order-sound";
 
 // Cash-register "cha-ching" bell like Shopify/YouCan, synthesized - no audio files needed
@@ -325,6 +325,8 @@ export function NewOrderNotifier() {
   useEffect(() => {
     let stopped = false;
     const poll = async () => {
+      // Save database quota: no polling while the tab is hidden (push covers it)
+      if (stopped || document.hidden) return;
       try {
         const res = await fetch("/api/orders?limit=10");
         if (!res.ok || stopped) return;
