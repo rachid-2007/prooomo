@@ -50,7 +50,7 @@ async function handleSync() {
       return NextResponse.json({ message: "لا طلبات للمزامنة", updated: 0 });
     }
 
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = 25;
     const allData: Record<string, any> = {};
 
     for (let i = 0; i < allTrackings.length; i += BATCH_SIZE) {
