@@ -83,6 +83,9 @@ export async function POST(request: NextRequest) {
     const result = data.results?.["0"];
 
     if (!result?.success || !result?.tracking) {
+      try {
+        console.error("SEND_REJECT", JSON.stringify(data).slice(0, 1000));
+      } catch { /* ignore */ }
       return NextResponse.json({ error: result?.error || "لم يتم الحصول على رقم تتبع", details: data }, { status: 502 });
     }
 

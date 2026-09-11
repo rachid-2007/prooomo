@@ -59,7 +59,19 @@ async function handleSync() {
 
       const res = await fetch(url, { method: "GET", headers: deliveryHeaders() });
       if (!res.ok) {
-        return NextResponse.json({ error: `فشل المزامنة: ${res.status}` }, { status: 502 });
+        let bodySnippet = "";
+        try {
+          const text = await res.text();
+          bodySnippet = text.slice(0, 300);
+        } catch { /* ignore */ }
+        console.error("SYNC_FAIL", JSON.stringify({
+          status: res.status,
+          cfMitigated: res.headers.get("cf-mitigated"),
+          server: res.headers.get("server"),
+          body: bodySnippet,
+          trackingsCount: batch.length,
+        }));
+        return NextResponse.json({ error: `فشلت المزامنة: ${res.status}` }, { status: 502 });
       }
 
       const result = await res.json();
