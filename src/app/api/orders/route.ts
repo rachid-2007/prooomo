@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { sendTelegramMessage, formatOrderNotification } from "@/lib/telegram";
 import { sendNewOrderPush, sendPushBroadcast } from "@/lib/push";
-import { getClientIp, findBlock, checkRateLimit, normalizePhone } from "@/lib/fraud";
+import { getClientIp, findBlock, findSubnetBlock, checkRateLimit, normalizePhone, calculateRiskScore } from "@/lib/fraud";
 
 const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const WAVE_THRESHOLD = 20;
@@ -255,10 +255,55 @@ export async function POST(request: Request) {
         );
       }
 
+      // Anti-fake: blocked subnet (e.g., entire /24 range)
+      const subnetBlock = await findSubnetBlock(clientIp);
+      if (subnetBlock) {
+        return NextResponse.json(
+          { error: "تعذر إتمام الطلب، يرجى الاتصال بخدمة الزبائن" },
+          { status: 403 }
+        );
+      }
+
       // Anti-fake: rate limits
       const limit = await checkRateLimit(customerPhone, clientIp);
       if (!limit.allowed) {
         return NextResponse.json({ error: limit.reason }, { status: 429 });
+      }
+
+      // Anti-fake: risk scoring - detect bot patterns
+      const risk = await calculateRiskScore({
+        phone: customerPhone,
+        ip: clientIp,
+        deviceId: deviceId || null,
+        productId,
+      });
+
+      if (risk.autoBlock) {
+        // Auto-block the device/IP/phone for repeated bot behavior
+        const blockEntries = [];
+        if (deviceId) blockEntries.push(prisma.blockedEntry.upsert({
+          where: { type_value: { type: "device", value: deviceId } },
+          create: { type: "device", value: deviceId, note: `حظر تلقائي - مخاطرة ${risk.score}/100: ${risk.reasons.join(", ")}`, createdBy: "auto-fraud" },
+          update: { note: `حظر تلقائي - مخاطرة ${risk.score}/100: ${risk.reasons.join(", ")}` },
+        }));
+        if (clientIp) blockEntries.push(prisma.blockedEntry.upsert({
+          where: { type_value: { type: "ip", value: clientIp } },
+          create: { type: "ip", value: clientIp, note: `حظر تلقائي - مخاطرة ${risk.score}/100: ${risk.reasons.join(", ")}`, createdBy: "auto-fraud" },
+          update: { note: `حظر تلقائي - مخاطرة ${risk.score}/100: ${risk.reasons.join(", ")}` },
+        }));
+        const normPhone = normalizePhone(customerPhone);
+        if (normPhone) blockEntries.push(prisma.blockedEntry.upsert({
+          where: { type_value: { type: "phone", value: normPhone } },
+          create: { type: "phone", value: normPhone, note: `حظر تلقائي - مخاطرة ${risk.score}/100: ${risk.reasons.join(", ")}`, createdBy: "auto-fraud" },
+          update: { note: `حظر تلقائي - مخاطرة ${risk.score}/100: ${risk.reasons.join(", ")}` },
+        }));
+
+        await Promise.all(blockEntries).catch(() => {});
+
+        return NextResponse.json(
+          { error: "تعذر إتمام الطلب، يرجى الاتصال بخدمة الزبائن" },
+          { status: 403 }
+        );
       }
     }
 
