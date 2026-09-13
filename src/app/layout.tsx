@@ -58,7 +58,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="notranslate" content="no-translate" />
       </head>
-      <body className="antialiased">
+      <body className="antialiased notranslate">
         <AuthProvider>
           <ThemeProvider>{children}</ThemeProvider>
         </AuthProvider>
