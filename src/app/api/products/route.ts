@@ -151,6 +151,13 @@ export async function POST(request: Request) {
 
     const { id: ownerId } = await getAuthFromToken(request);
 
+    // Verify ownerId exists to avoid FK violation (old JWT with deleted user)
+    let validOwnerId: string | undefined = undefined;
+    if (ownerId) {
+      const ownerUser = await prisma.user.findUnique({ where: { id: ownerId }, select: { id: true } });
+      if (ownerUser) validOwnerId = ownerUser.id;
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -162,7 +169,7 @@ export async function POST(request: Request) {
         initialStock: initialStock || 0,
         images: compressedImages,
         thumbnail,
-        ownerId: ownerId || undefined,
+        ownerId: validOwnerId,
         variants: variants
           ? {
               create: variants.map((v: any) => ({
