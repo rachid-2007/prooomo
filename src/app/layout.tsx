@@ -56,6 +56,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="notranslate" content="no-translate" />
       </head>
       <body className="antialiased">
         <AuthProvider>
