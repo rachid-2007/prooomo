@@ -139,7 +139,6 @@ export async function POST(request: Request) {
 
     // Anti-bot: blocked device/IP/phone
     const ip = getClientIp(request);
-    const deviceId = body.deviceId || null;
     const block = await findBlock(customerPhone, ip, deviceId);
     if (block) return NextResponse.json({ ok: true }, { status: 200 });
 
