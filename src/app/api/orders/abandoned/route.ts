@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { normalizePhone } from '@/lib/fraud';
+import { normalizePhone, findBlock, findSubnetBlock, getClientIp } from '@/lib/fraud';
 import { requireUser, unauthorized } from '../../push/auth';
 
 function toOrderWithRelations(ao: any, productImageMap?: Map<string, string>) {
@@ -129,6 +129,30 @@ export async function POST(request: Request) {
         { error: 'productId and customerPhone are required' },
         { status: 400 }
       );
+    }
+
+    // Anti-bot: block headless browsers
+    const ua = (request.headers.get("user-agent") || "").toLowerCase();
+    if (!ua.includes("mozilla") || ua.includes("x11; linux x86_64") || ua.includes("headless")) {
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    // Anti-bot: blocked device/IP/phone
+    const ip = getClientIp(request);
+    const deviceId = body.deviceId || null;
+    const block = await findBlock(customerPhone, ip, deviceId);
+    if (block) return NextResponse.json({ ok: true }, { status: 200 });
+
+    const subnetBlock = await findSubnetBlock(ip);
+    if (subnetBlock) return NextResponse.json({ ok: true }, { status: 200 });
+
+    // Anti-spam: max 2 abandoned orders per IP per 10 minutes
+    if (ip) {
+      const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const recentCount = await prisma.abandonedOrder.count({
+        where: { ipAddress: ip, createdAt: { gte: tenMinAgo } },
+      });
+      if (recentCount >= 2) return NextResponse.json({ ok: true }, { status: 200 });
     }
 
     const abandonedOrder = await prisma.abandonedOrder.create({
