@@ -219,7 +219,16 @@ export async function POST(request: Request) {
     if (!isAdminOrder) {
       // Anti-bot: must come from a real browser (blocks raw scripts like python/curl).
       // Checked FIRST so bot hits cost zero database queries.
-      if (!userAgent || !userAgent.toLowerCase().includes("mozilla")) {
+      const uaLower = (userAgent || "").toLowerCase();
+      if (!userAgent || !uaLower.includes("mozilla")) {
+        return NextResponse.json(
+          { error: "تعذر إتمام الطلب، يرجى الطلب من المتصفح" },
+          { status: 403 }
+        );
+      }
+
+      // Anti-bot: block headless Chrome browsers (X11; Linux x86_64 = bot, not real user)
+      if (uaLower.includes("x11; linux x86_64") || uaLower.includes("headlesschrome") || uaLower.includes("headless")) {
         return NextResponse.json(
           { error: "تعذر إتمام الطلب، يرجى الطلب من المتصفح" },
           { status: 403 }
