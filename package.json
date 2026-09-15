@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npx prisma db push --schema=prisma/schema.postgres.prisma --accept-data-loss && npx prisma generate --schema=prisma/schema.postgres.prisma",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
